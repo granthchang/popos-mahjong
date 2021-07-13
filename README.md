@@ -1,4 +1,4 @@
-# popos-mahjong
+# Popo's Mahjong
 
 - Currently in development. Releasing early 2022.
 
