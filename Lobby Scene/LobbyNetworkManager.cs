@@ -1,42 +1,51 @@
 // Author: Grant Chang
-// Date: 9 July 2021
+// Date: 14 July 2021
 
 using Photon.Pun;
+using Photon.Realtime;
 using System.Text.RegularExpressions;
 using System;
 
 /// <summary>
-/// NetworkManager handles basic networking concerns to establish connection between the client
-/// and the server. Meant to be accessed by other scripts, but does not access other scripts itself.
+/// LobbyNetworkManager handles basic networking concerns for the lobby scene like connecting to the
+/// master server and hosting/finding a room. When a room is created or found, use RoomNetworkManager.
 /// </summary>
-public class NetworkManager : MonoBehaviourPunCallbacks
+public class LobbyNetworkManager : MonoBehaviourPunCallbacks
 {
-	// Singleton Object
-	public static NetworkManager singleton;
+	#region Singleton
+
+	public static LobbyNetworkManager singleton;
 	private void Awake()
 	{
 		if (singleton != null && singleton != this)
 			this.gameObject.SetActive(false);
 		singleton = this;
 	}
-
-
-	public string roomCode { get; set; }
-	public string playerName { get; set; }
-
-	public event Action<string> OnInvalidPlayerName;
-	public event Action<string> OnInvalidRoomCode;
-
+	
+	#endregion
+	#region Start / Loading Scenes
 
 	/* -------------------- CONNECTING TO MASTER SERVER -------------------- */
 
-	// When the client opens, start connecting to the master server
+	/// <summary>
+    /// When the client opens, start connecting to the master server
+	/// </summary>
 	private void Start()
     {
 		if (!PhotonNetwork.IsConnected)
 			PhotonNetwork.ConnectUsingSettings();
 	}
 
+	/// <summary>
+	/// On connection to a room, switch to room scene.
+	/// </summary>
+	public override void OnJoinedRoom()
+	{
+		PhotonNetwork.LoadLevel("Room");
+	}
+
+	#endregion
+	#region Rooms
 
 	/* -------------------- HOSTING ROOM -------------------- */
 
@@ -45,9 +54,14 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 	/// </summary>
 	public void CreateRoom()
 	{
-		if (TrySetPlayerName(playerName))
-			PhotonNetwork.CreateRoom(GenerateRoomCode());
-	}
+        if (TrySetPlayerName(tempPlayerName))
+        {
+			RoomOptions roomOptions = new RoomOptions();
+            roomOptions.MaxPlayers = 4;
+            EnterRoomParams enterRoomParams = new EnterRoomParams();
+            PhotonNetwork.CreateRoom(GenerateRoomCode(), roomOptions);
+        }
+    }
 
 	/// <summary>
 	/// Generates a random uppercase 4-letter string
@@ -70,8 +84,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 	/// </summary>
 	public void FindRoom()
 	{
-		if (TrySetPlayerName(playerName) && TrySetRoomCode(roomCode))
-			PhotonNetwork.JoinRoom(roomCode);
+		if (TrySetPlayerName(tempPlayerName) && TrySetRoomCode(tempRoomCode))
+			PhotonNetwork.JoinRoom(tempRoomCode);
 	}
 
 	/// <summary>
@@ -79,28 +93,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 	/// </summary>
 	public void JoinRandomRoom()
 	{
-		if (TrySetPlayerName(playerName))
+		if (TrySetPlayerName(tempPlayerName))
 			PhotonNetwork.JoinRandomRoom();
-	}
-
-
-	/* -------------------- DISCONNECTING -------------------- */
-
-	/// <summary>
-	/// Leaves current room. If not in one, does nothing.
-	/// </summary>
-	public void LeaveRoom()
-	{
-		if (PhotonNetwork.CurrentRoom != null)
-			PhotonNetwork.LeaveRoom();
-	}
-
-	/// <summary>
-	/// On leaving room, load the Lobby scene.
-	/// </summary>
-	public override void OnLeftRoom()
-	{
-		PhotonNetwork.LoadLevel("Lobby");
 	}
 
 	/// <summary>
@@ -111,13 +105,20 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 		PhotonNetwork.Disconnect();
 	}
 
+	#endregion
+	#region Validators
 
-	/* -------------------- VALIDATORS -------------------- */
+	public string tempPlayerName { get; set; }
+	public event Action<string> OnInvalidPlayerName;
+	
+	public string tempRoomCode { get; set; }
+	public event Action<string> OnInvalidRoomCode;
+
 
 	/// <summary>
-	/// Provided player name is trimmed and validated. If the name passes validation, sets player name on the network.
-	/// To pass validation, player names may not be null, empty, or whitespace and must be entirely alphanumeric or spaces.
-	/// Returns true if succeeded.
+	/// Provided player name is trimmed and validated. If the name passes validation, sets player
+    /// name on the network. To pass validation, player names may not be null, empty, or whitespace
+    /// and must be entirely alphanumeric or spaces. Returns true if succeeded.
 	/// </summary>
 	private bool TrySetPlayerName(string name)
 	{
@@ -139,6 +140,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 		return true;
 	}
 
+
 	/// <summary>
 	/// Sets room code to provided code. Does not accept null values. Returns true if succeeded.
 	/// </summary>
@@ -150,18 +152,9 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 			return false;
 		}
 
-		roomCode = code.Trim().ToUpper();
+		tempRoomCode = code.Trim().ToUpper();
 		return true;
 	}
 
-
-	/* -------------------- LOADING SCENES -------------------- */
-
-	/// <summary>
-	/// On connection to a room, switch to room scene.
-	/// </summary>
-	public override void OnJoinedRoom()
-	{
-		PhotonNetwork.LoadLevel("Room");
-	}
+	#endregion
 }

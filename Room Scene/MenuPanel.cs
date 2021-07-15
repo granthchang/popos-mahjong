@@ -1,17 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
+// Author: Grant Chang
+// Date: 14 July 2021
+
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// MenuPanel toggles the Menu Panel open and closed.
+/// </summary>
 public class MenuPanel : MonoBehaviour
 {
 	[SerializeField] private Animator menuAnimator;
 	[SerializeField] private Animator overlayAnimator;
 	[SerializeField] private Image overlay;
+
 	private bool isOpen;
 
 	/// <summary>
-	/// Toggles the menu panel open and closed
+	/// Toggles the Menu Panel open and closed
 	/// </summary>
 	public void ToggleOpen()
 	{
