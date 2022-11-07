@@ -17,7 +17,6 @@ public class GameManager : MonoBehaviourPunCallbacks {
   private bool _bHasGameFinished = true;
   private IEnumerator _currentCoroutine;
   // Player order
-  public OrderedDictionary PlayerDictionary;
   public List<Player> PlayerList { get; private set; }
   public event Action<List<Player>> OnPlayerListUpdated;
   // Game settings
@@ -25,8 +24,8 @@ public class GameManager : MonoBehaviourPunCallbacks {
   public RoomSettings RoomSettings;
   // Game info
   public event Action<int> OnCurrentWindUpdated;
-  public int CurrentWind { get; private set; }
-  public int CurrentBank { get; private set; }
+  private int _currentWind;
+  private int _currentBank;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -37,7 +36,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
     if (PhotonNetwork.IsMasterClient) {
       RoundManager.Singleton.OnRoundFinished += HandleRoundFinished;
     }
-    RoomSettings = new RoomSettings();
+    RoomSettings = ScriptableObject.CreateInstance<RoomSettings>();
   }
 
   public void StartGame() {
@@ -103,7 +102,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
   private void HandlePlayerPropertiesInitialized() {
     _bHasGameFinished = false;
-    RoundManager.Singleton.StartRound(PlayerList, CurrentBank, CurrentWind);
+    RoundManager.Singleton.StartRound(PlayerList, _currentBank, _currentWind);
   }
 
   // Separate from RpcClientHandleCurrentWindUpdated because this only needs to be called once at the very beginning of the game. It
@@ -115,9 +114,9 @@ public class GameManager : MonoBehaviourPunCallbacks {
     // Continue setting up game now that we have the playerlist
     if (PhotonNetwork.IsMasterClient) {
       PlayerManager.Singleton.SetHandOwners(list);
-      CurrentBank = 0;
-      CurrentWind = 1;
-      photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, CurrentWind);
+      _currentBank = 0;
+      _currentWind = 1;
+      photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
       photonView.RPC("RpcClientHandleGameStarted", RpcTarget.All);
       PropertyManager.Singleton.UpdatePropertiesWithCallback(InitializePlayerProperties, HandlePlayerPropertiesInitialized);
     }
@@ -125,8 +124,8 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleCurrentWindUpdated(int newWind) {
-    CurrentWind = newWind;
-    OnCurrentWindUpdated?.Invoke(CurrentWind);
+    _currentWind = newWind;
+    OnCurrentWindUpdated?.Invoke(_currentWind);
   }
 
   public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable propertiesThatChanged) {
@@ -146,7 +145,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
   private void HandleRoundFinished(Player winner, Player loser, int fans) {
     if (winner == null) {
-      RoundManager.Singleton.StartRound(PlayerList, CurrentBank, CurrentWind);
+      RoundManager.Singleton.StartRound(PlayerList, _currentBank, _currentWind);
     } else {
       PropertyManager.Singleton.UpdatePropertiesWithCallback(
         () => { UpdatePlayerScores(winner, loser, fans); },
@@ -183,21 +182,21 @@ public class GameManager : MonoBehaviourPunCallbacks {
       return;
     }
     // Update current bank if the winner wasn't the current bank
-    if (PlayerList[CurrentBank] != winner) {
-      CurrentBank = (CurrentBank + 1) % PlayerList.Count;
-      if (CurrentBank == 0) {
-        CurrentWind++;
-        if (CurrentWind > RoomSettings.MaxCycles) {
+    if (PlayerList[_currentBank] != winner) {
+      _currentBank = (_currentBank + 1) % PlayerList.Count;
+      if (_currentBank == 0) {
+        _currentWind++;
+        if (_currentWind > RoomSettings.MaxCycles) {
           FinishGame();
           return;
         }
         foreach (Player p in PlayerList) {
           PlayerUtilities.AdvancePlayerFlower(p);
         }
-        photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, CurrentWind);
+        photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
       }
     }
-    RoundManager.Singleton.StartRound(PlayerList, CurrentBank, CurrentWind);
+    RoundManager.Singleton.StartRound(new List<Player>(PlayerList), _currentBank, _currentWind);
   }
 
   private void FinishGame() {

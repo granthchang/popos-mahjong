@@ -7,6 +7,9 @@ using UnityEngine;
 public class LobbyManager : MonoBehaviourPunCallbacks {
   public static LobbyManager Singleton;
   public event Action<string> OnServerEvent;
+  public string TempPlayerName { get; set; }
+  public string TempRoomCode { get; set; }
+  
   [Header("Room Settings")]
   [SerializeField] private RoomSettings _roomSettings;
 
@@ -29,9 +32,6 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
   [SerializeField] private string _createdRoomText = "Successfully created room with code:";
   [SerializeField] private string _hostRoomFailedText = "Failed to host room.";
   [SerializeField] private string _foundRoomText = "Successfully found room. Loading game...";
-
-  public string TempPlayerName { get; set; }
-  public string TempRoomCode { get; set; }
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {

@@ -5,10 +5,8 @@ using System.Collections.Generic;
 
 public class RoomManager : MonoBehaviourPunCallbacks {
   public static RoomManager Singleton;
-
   public event Action OnRoomManagerStarted;
   public event Action<List<Player>> OnPlayerListUpdated;
-  public event Action OnMaxPlayersReached;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -24,7 +22,6 @@ public class RoomManager : MonoBehaviourPunCallbacks {
       return;
     }
 #endif
-
     Reset();
   }
 
@@ -38,7 +35,6 @@ public class RoomManager : MonoBehaviourPunCallbacks {
   public override void OnPlayerEnteredRoom(Player newPlayer) {
     OnPlayerListUpdated?.Invoke(new List<Player>(PhotonNetwork.PlayerList));
     if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount == PhotonNetwork.CurrentRoom.MaxPlayers) {
-      OnMaxPlayersReached?.Invoke();
       GameManager.Singleton.StartGame();
     }
   }

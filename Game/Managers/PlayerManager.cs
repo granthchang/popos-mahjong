@@ -16,6 +16,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [SerializeField] private HandDisplay[] _handDisplays3p;
   [SerializeField] private HandDisplay[] _handDisplays2p;
 
+  private List<Card> _localHand;
+
   private void Awake() {
     if (Singleton != null && Singleton != this) {
       this.gameObject.SetActive(false);
@@ -37,6 +39,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public void Reset() {
     _handDictionary = null;
+    _localHand = null;
     foreach (HandDisplay hd in _handDisplays4p) {
       hd.ActivatePanel(false);
       hd.Reset();
@@ -79,37 +82,66 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     }
   }
 
-  public void SendCards(List<Card> cards, Player target) {
+  public void SendCards(Player target, List<Card> cards) {
     if (PhotonNetwork.IsMasterClient) {
       List<Card> unknownCards = new List<Card>();
       for (int i = 0; i < cards.Count; i++) {
-        unknownCards.Add(new Card());
+        unknownCards.Add(Card.Unknown);
       }
       foreach (Player p in PhotonNetwork.PlayerList) {
         if (p == target) {
-          photonView.RPC("RpcClientHandleCardsReceived", p, cards, target);
+          photonView.RPC("RpcClientHandleCardsReceived", p, target, cards);
         } else {
-          photonView.RPC("RpcClientHandleCardsReceived", p, unknownCards, target);
+          photonView.RPC("RpcClientHandleCardsReceived", p, target, unknownCards);
         }
       }
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleCardsReceived(List<Card> cards, Player target) {
+  private void RpcClientHandleCardsReceived(Player target, List<Card> cards) {
     foreach (Card c in cards) {
       _handDictionary[target].AddCard(c);
+      if (target == PhotonNetwork.LocalPlayer) {
+        _localHand.Add(c);
+      }
     }
   }
 
-  public void RevealFlower(Card card, Player revealer) {
+  public void RevealFlower(Player revealer, Card card) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleFlowerRevealed", RpcTarget.All, card, revealer);
+      photonView.RPC("RpcClientHandleFlowerRevealed", RpcTarget.All, revealer, card);
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleFlowerRevealed(Card card, Player revealer) {
+  private void RpcClientHandleFlowerRevealed(Player revealer, Card card) {
     _handDictionary[revealer].RevealFlower(card);
   }
+
+  public void ClearHands() {
+    photonView.RPC("RpcClientHandleHandsCleared", RpcTarget.All);
+  }
+
+  [PunRPC]
+  private void RpcClientHandleHandsCleared() {
+    foreach (KeyValuePair<Player, HandDisplay> pair in _handDictionary) {
+      pair.Value.Reset();
+      pair.Value.SetPlayer(pair.Key);
+    }
+    _localHand = new List<Card>();
+  }
+
+  // // Testing
+  // private void Update() {
+  //   // When L is pressed, Lock set for an opposing player
+  //   if (Input.GetKeyDown(KeyCode.L)) {
+  //     List<Card> set0 = new List<Card>();
+  //     set0.Add(new Card(Suit.Circle, 2, 1));
+  //     set0.Add(new Card(Suit.Circle, 3, 1));
+  //     set0.Add(new Card(Suit.Circle, 4, 1));
+
+  //     _handDisplays2p[1].LockCards(set0, new Card(Suit.Circle, 3, 1));
+  //   }
+  // }
 }

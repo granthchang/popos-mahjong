@@ -3,48 +3,48 @@ using UnityEngine;
 
 public class NumberField : MonoBehaviour
 {
-  [SerializeField] private TMP_InputField _input;
-  [SerializeField] private int _defaultValue = 0;
-  [SerializeField] private int _minValue = 0;
-  [SerializeField] private bool _enableMinValue = false;
-  [SerializeField] private int _maxValue = 99;
-  [SerializeField] private bool _enableMaxValue = false;
+  [SerializeField] private TMP_InputField _inputField;
+  public int DefaultValue = 0;
+  public int MinValue = 0;
+  public bool CalmpMin = false;
+  public int MaxValue = 99;
+  public bool ClampMax = false;
 
   private void Start() {
-    _input.text = $"{_defaultValue}";
-    if (_minValue > _maxValue) {
-      _enableMinValue = _enableMaxValue = false;
+    _inputField.text = $"{DefaultValue}";
+    if (MinValue > MaxValue) {
+      CalmpMin = ClampMax = false;
     }
 
-    _input.onEndEdit.AddListener(delegate{
-      int num = int.Parse(_input.text);
+    _inputField.onEndEdit.AddListener(delegate{
+      int num = int.Parse(_inputField.text);
       num = ClampNum(num);
-      _input.text = $"{num}";
+      _inputField.text = $"{num}";
     });
   }
 
   public void Increment() {
-    int prev = int.Parse(_input.text);
+    int prev = int.Parse(_inputField.text);
     prev++;
     prev = ClampNum(prev);
-    _input.text = $"{prev}";
-    _input.onEndEdit?.Invoke(_input.text);
+    _inputField.text = $"{prev}";
+    _inputField.onEndEdit?.Invoke(_inputField.text);
   }
 
   public void Decrement() {
-    int prev = int.Parse(_input.text);
+    int prev = int.Parse(_inputField.text);
     prev--;
     prev = ClampNum(prev);
-    _input.text = $"{prev}";
-    _input.onEndEdit?.Invoke(_input.text);
+    _inputField.text = $"{prev}";
+    _inputField.onEndEdit?.Invoke(_inputField.text);
   }
 
-  public int ClampNum(int num) {
-    if (_enableMinValue && num < _minValue) {
-      return _minValue;
+  private int ClampNum(int num) {
+    if (CalmpMin && num < MinValue) {
+      return MinValue;
     }
-    if (_enableMaxValue && num > _maxValue) {
-      return _maxValue;
+    if (ClampMax && num > MaxValue) {
+      return MaxValue;
     }
     return num;
   }

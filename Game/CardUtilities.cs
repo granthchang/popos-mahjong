@@ -15,6 +15,8 @@ namespace CardUtilities {
 
   // Representation of a single mahjong card.
   public class Card : IComparable<Card> {
+    public static Card Unknown = new Card(0);
+
     public Suit Suit { get; private set; }
     public int Value { get; private set; }
     public int ID { get; private set; }
@@ -81,13 +83,38 @@ namespace CardUtilities {
     }
 
     public int CompareTo(Card card) {
-      if (this.ID / 10 < card.ID / 10) {
+      if (ReferenceEquals(card, null) || this.ID / 10 < card.ID / 10) {
         return -1;
       }
       if (this.ID / 10 == card.ID / 10) {
         return 0;
       }
       return 1;
+    }
+
+    public override bool Equals(object obj) {
+      if (obj is Card) {
+        return this.Equals((Card)obj);
+      }
+      return false;
+    }
+
+    public override int GetHashCode() {
+      return this.ID;
+    }
+
+    public static bool operator ==(Card left, Card right) {
+      if(ReferenceEquals(left, null)) {
+        return ReferenceEquals(right, null);
+      }
+      return left.CompareTo(right) == 0;
+    }
+
+    public static bool operator !=(Card left, Card right) {
+      if (ReferenceEquals(left, null)) {
+        return !ReferenceEquals(right, null);
+      }
+      return left.CompareTo(right) != 0;
     }
 
     public static void SortCardsInTransform(Transform transform) {

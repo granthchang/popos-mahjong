@@ -6,10 +6,10 @@ using UnityEngine;
 
 public class PlayerList : MonoBehaviour {
   [SerializeField] private GameObject _listItemPrefab;
-  [SerializeField] private bool _updateManually = false;
+  public bool UpdateManually = false;
 
   private void Awake() {
-    if (!_updateManually) {
+    if (!UpdateManually) {
       RoomManager.Singleton.OnPlayerListUpdated += RefreshPlayerList;
       GameManager.Singleton.OnPlayerListUpdated += RefreshPlayerList;
     }

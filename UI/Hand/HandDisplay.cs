@@ -14,6 +14,8 @@ public class HandDisplay : ActivatablePanel {
   [SerializeField] private Transform _hiddenHand;
   [SerializeField] private GameObject _cardPrefab;
 
+  [SerializeField] bool _isLocalHand = false;
+
   public event Action<List<Card>> OnSetLocked;
   private int _nextLockIndex = 1;
 
@@ -31,6 +33,7 @@ public class HandDisplay : ActivatablePanel {
     }
     Card.ClearCardsInTransform(_lockedHand);
     Card.ClearCardsInTransform(_hiddenHand);
+    _nextLockIndex = 1;
   }
   
   public void SetPlayer(Player player) {
@@ -54,73 +57,36 @@ public class HandDisplay : ActivatablePanel {
     Card.SortCardsInTransform(_hiddenHand);
   }
 
-  private void HandleCardsLocked(List<Card> cards) {
-    foreach (Card c in cards) {
+  public void LockCards(List<Card> cardsToLock, Card cardFromDiscard) {
+    foreach (Card c in cardsToLock) {
       GameObject newCard = GameObject.Instantiate(_cardPrefab, _lockedHand);
       newCard.GetComponent<CardDisplay>().SetCard(c);
       newCard.transform.SetSiblingIndex(_nextLockIndex);
       _nextLockIndex++;
     }
-    if (_lockModal != null) {
-      float spacing = _lockedHand.GetComponent<HorizontalLayoutGroup>().spacing;
-      Vector2 cardSize = _cardPrefab.GetComponent<RectTransform>().sizeDelta;
-      float offset = (cardSize.x + spacing) * cards.Count;
-      RectTransform modalTransform = _lockModal.GetComponent<RectTransform>();
-      modalTransform.localPosition = modalTransform.localPosition + new Vector3(offset, 0, 0);
-    }
-  }
+    if (_isLocalHand) {
+      // TODO - remove specific cards from hand
 
-  // Test case
-  private void Update() {
-    // D to deal hand
-    if (Input.GetKeyUp(KeyCode.D)) {
-      Deck deck = new Deck();
-      deck.Shuffle();
-      for (int i = 0; i < 13; i++) {
-        Card c = deck.Draw();
-        AddCard(c);
-        if (c.Suit == Suit.Flower) {
-          i--;
-        }
+      // Shift LockModal
+      if (_lockModal != null) {
+        float spacing = _lockedHand.GetComponent<HorizontalLayoutGroup>().spacing;
+        Vector2 cardSize = _cardPrefab.GetComponent<RectTransform>().sizeDelta;
+        float offset = (cardSize.x + spacing) * cardsToLock.Count;
+        RectTransform modalTransform = _lockModal.GetComponent<RectTransform>();
+        modalTransform.localPosition = modalTransform.localPosition + new Vector3(offset, 0, 0);
       }
     }
-
-    // H to send hidden cards
-    if (Input.GetKeyUp(KeyCode.H)) {
-      AddCard(new Card(0));
-    }
-    // L to send hidden cards
-    if (Input.GetKeyUp(KeyCode.L)) {
-      List<Card> set0 = new List<Card>();
-      set0.Add(new Card(Suit.Circle, 2, 1));
-      set0.Add(new Card(Suit.Circle, 3, 1));
-      set0.Add(new Card(Suit.Circle, 4, 1));
-      HandleCardsLocked(set0);
-    }
-
-    // M to open lock modal
-    if (Input.GetKeyUp(KeyCode.M) && _lockModal != null) {
-      List<Card> set0 = new List<Card>();
-      set0.Add(new Card(Suit.Circle, 2, 1));
-      set0.Add(new Card(Suit.Circle, 3, 1));
-      set0.Add(new Card(Suit.Circle, 4, 1));
-      List<Card> set1 = new List<Card>();
-      set1.Add(new Card(Suit.Stick, 6, 1));
-      set1.Add(new Card(Suit.Stick, 7, 1));
-      set1.Add(new Card(Suit.Stick, 8, 1));
-      List<Card> set2 = new List<Card>();
-      set2.Add(new Card(Suit.Wind, 4, 1));
-      set2.Add(new Card(Suit.Wind, 4, 1));
-      set2.Add(new Card(Suit.Wind, 4, 1));
-      set2.Add(new Card(Suit.Wind, 4, 1));
-
-      List<List<Card>> sets = new List<List<Card>>();
-      sets.Add(set0);
-      sets.Add(set1);
-      sets.Add(set2);
-
-      _lockModal.OnOptionSelected += HandleCardsLocked;
-      _lockModal.OpenLockModal(sets);
+    else {
+      int numToRemove = (cardFromDiscard == null) ? cardsToLock.Count : cardsToLock.Count-1;
+      for (int i = 0; i < numToRemove; i++) {
+        foreach (Transform child in _hiddenHand) {
+          CardDisplay cd = child.GetComponent<CardDisplay>();
+          if (cd != null && cd.Card == Card.Unknown) {
+            GameObject.DestroyImmediate(child.gameObject);
+            break;
+          }
+        }
+      }
     }
   }
 }

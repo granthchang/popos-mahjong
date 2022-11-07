@@ -7,7 +7,7 @@ using Hashtable = ExitGames.Client.Photon.Hashtable;
 public class PropertyManager : MonoBehaviourPunCallbacks {
   public static PropertyManager Singleton;
   private Dictionary<Player, bool> _playersUpdatedDictionary;
-  public Action _callbackAction;
+  private Action _callbackAction;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {

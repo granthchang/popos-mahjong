@@ -2,16 +2,21 @@ using CardUtilities;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class FlowerDisplay : ActivatablePanel {
   [SerializeField] private GameObject _cardPrefab;
   [SerializeField] private TMP_Text _flowerButtonTextObj;
+  [SerializeField] private Image _flowerButtonCircle;
   private int _flowerCount = 0;
 
   public void Reset() {
     _flowerCount = 0;
     foreach (Transform child in this.transform) {
       GameObject.Destroy(child.gameObject);
+    }
+    if (_flowerButtonCircle != null) {
+      _flowerButtonCircle.color = StyleManager.StyleSettings.TileYellow;
     }
   }
 

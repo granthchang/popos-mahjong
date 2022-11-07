@@ -34,23 +34,24 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
       photonView.RPC("RpcClientHandleRoundStarted", RpcTarget.All);
 
+      PlayerManager.Singleton.ClearHands();
       for (int i = 0; i < _players.Count; i++) {
         Player currPlayer = _players[(startIndex + i) % _players.Count];
         List<Card> cards = new List<Card>();
         for (int j = 0; j < 13; j++) {
           Card c = _deck.Draw();
           while (c.Suit == Suit.Flower) {
-            PlayerManager.Singleton.RevealFlower(c, currPlayer);
+            PlayerManager.Singleton.RevealFlower(currPlayer, c);
             c = _deck.Draw();
           }
           cards.Add(c);
         }
-        PlayerManager.Singleton.SendCards(cards, currPlayer);
+        PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
 
-      // // TEST CASE
-      // _currentCoroutine = SetRandomWinner();
-      // StartCoroutine(_currentCoroutine);
+      // TEST CASE
+      _currentCoroutine = SetRandomWinner();
+      StartCoroutine(_currentCoroutine);
     }
   }
 
