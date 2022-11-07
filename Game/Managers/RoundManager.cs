@@ -49,11 +49,26 @@ public class RoundManager : MonoBehaviourPunCallbacks {
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
 
-      // TEST CASE
-      _currentCoroutine = SetRandomWinner();
-      StartCoroutine(_currentCoroutine);
+      // Start first turn
+      PlayerManager.Singleton.StartDraw(_players[startIndex]);
+
+      // // TEST CASE
+      // _currentCoroutine = SetRandomWinner();
+      // StartCoroutine(_currentCoroutine);
     }
   }
+
+  public void RequestDraw() {
+    photonView.RPC("RpcMasterHandleDrawRequested", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer);
+  }
+
+  [PunRPC]
+  private void RpcMasterHandleDrawRequested(Player sender) {
+    PlayerManager.Singleton.SendCard(sender, _deck.Draw());
+    PlayerManager.Singleton.RequestDiscard(sender);
+  }
+
+
 
   public void StopRound() {
     if (_currentCoroutine != null) {

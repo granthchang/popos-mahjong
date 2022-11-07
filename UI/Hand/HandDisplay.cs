@@ -57,6 +57,11 @@ public class HandDisplay : ActivatablePanel {
     Card.SortCardsInTransform(_hiddenHand);
   }
 
+  public void EnableDiscard() {
+    // TODO - Enable discarding
+    Debug.Log("HandDisplay: DISCARD ENABLED");
+  }
+
   public void LockCards(List<Card> cardsToLock, Card cardFromDiscard) {
     foreach (Card c in cardsToLock) {
       GameObject newCard = GameObject.Instantiate(_cardPrefab, _lockedHand);

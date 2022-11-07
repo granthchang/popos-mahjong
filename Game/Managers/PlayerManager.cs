@@ -1,6 +1,7 @@
 using CardUtilities;
 using Photon.Pun;
 using Photon.Realtime;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,6 +18,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [SerializeField] private HandDisplay[] _handDisplays2p;
 
   private List<Card> _localHand;
+
+  public event Action<Player> OnDrawStarted;
+  public event Action<Player> OnDiscardRequested;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -82,6 +86,26 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     }
   }
 
+  public void SendCard(Player target, Card card) {
+    if (PhotonNetwork.IsMasterClient) {
+      foreach (Player p in PhotonNetwork.PlayerList) {
+        if (p == target) {
+          photonView.RPC("RpcClientHandleCardReceived", p, target, card);
+        } else {
+          photonView.RPC("RpcClientHandleCardReceived", p, target, Card.Unknown);
+        }
+      }
+    }
+  }
+
+  [PunRPC]
+  private void RpcClientHandleCardReceived(Player target, Card card) {
+    _handDictionary[target].AddCard(card);
+    if (target == PhotonNetwork.LocalPlayer) {
+      _localHand.Add(card);
+    }
+  }
+
   public void SendCards(Player target, List<Card> cards) {
     if (PhotonNetwork.IsMasterClient) {
       List<Card> unknownCards = new List<Card>();
@@ -117,6 +141,31 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleFlowerRevealed(Player revealer, Card card) {
     _handDictionary[revealer].RevealFlower(card);
+  }
+
+  public void StartDraw(Player turnPlayer) {
+    if (PhotonNetwork.IsMasterClient) {
+      photonView.RPC("RpcClientHandleDrawStarted", RpcTarget.All, turnPlayer);
+    }
+  }
+
+  [PunRPC]
+  private void RpcClientHandleDrawStarted(Player turnPlayer) {
+    OnDrawStarted?.Invoke(turnPlayer); // Enables drawing in TableDisplay
+  }
+
+  public void RequestDiscard(Player requestedPlayer) {
+    if (PhotonNetwork.IsMasterClient) {
+      photonView.RPC("RpcClientHandleDiscardRequested", RpcTarget.All, requestedPlayer);
+    }
+  }
+
+  [PunRPC]
+  private void RpcClientHandleDiscardRequested(Player requestedPlayer) {
+    OnDiscardRequested?.Invoke(requestedPlayer);
+    if (requestedPlayer == PhotonNetwork.LocalPlayer) {
+      _handDictionary[requestedPlayer].EnableDiscard();
+    }
   }
 
   public void ClearHands() {
