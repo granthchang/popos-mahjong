@@ -33,6 +33,8 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
   [SerializeField] private string _hostRoomFailedText = "Failed to host room.";
   [SerializeField] private string _foundRoomText = "Successfully found room. Loading game...";
 
+  private bool _isConnected;
+
   private void Awake() {
     if (Singleton != null && Singleton != this) {
       this.gameObject.SetActive(false);
@@ -42,12 +44,14 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
 
   private void Start() {
     if (!PhotonNetwork.IsConnected) {
+      _isConnected = false;
       PhotonNetwork.ConnectUsingSettings();
       OnServerEvent?.Invoke(_connectingText);
     }
   }
 
   public override void OnConnectedToMaster() {
+    _isConnected = true;
     OnServerEvent?.Invoke(_connectedText);
   }
 
@@ -63,7 +67,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
     if (!TrySetPlayerName(TempPlayerName)) {
       return;
     }
-    if (!PhotonNetwork.IsConnected) {
+    if (!_isConnected) {
       OnServerEvent?.Invoke(_notConnectedText);
       return;
     }
@@ -86,7 +90,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
     if (!TrySetPlayerName(TempPlayerName) || !TrySetRoomCode(TempRoomCode)) {
       return;
     }
-    if (!PhotonNetwork.IsConnected) {
+    if (!_isConnected) {
       OnServerEvent?.Invoke(_notConnectedText);
       return;
     }
@@ -97,7 +101,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
     if (!TrySetPlayerName(TempPlayerName)) {
       return;
     }
-    if (!PhotonNetwork.IsConnected) {
+    if (!_isConnected) {
       OnServerEvent?.Invoke(_notConnectedText);
       return;
     }
@@ -120,7 +124,7 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
   }
 
   public void QuitGame() {
-    if (PhotonNetwork.IsConnected) {
+    if (_isConnected) {
       PhotonNetwork.Disconnect();
     }
     Application.Quit();
