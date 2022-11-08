@@ -7,41 +7,41 @@ public class CardDisplay : MonoBehaviour {
   public Card Card { get; private set; }
   [SerializeField] private Image _tileBackground;
   [SerializeField] private Image _tileEngraving;
-
-  [SerializeField] private TMP_Text _suitTextObj;
-  [SerializeField] private TMP_Text _valueTextObj;
+  [SerializeField] private Button _cardButton;
+  [SerializeField] private bool _overrideDefaultButtonFunction;
 
   public void SetCard(CardUtilities.Card card) {
     Card = card;
-    _suitTextObj.text = $"{card.Suit}";
-    if (_tileEngraving != null) {
-      _tileEngraving.sprite = StyleManager.StyleSettings.GetSpriteFromCard(card);
-      _tileEngraving.enabled = true;
+    if (card.Suit == Suit.None) {
+      _tileBackground.color = StyleManager.StyleSettings.TileBackFill;
+      _tileEngraving.enabled = false;
     }
-    if (_tileBackground != null) {
-      _tileBackground.sprite = StyleManager.StyleSettings.TileBackground;
-      _tileBackground.color = StyleManager.StyleSettings.TileFrontFill;
+    else {
+      if (_tileEngraving != null) {
+        _tileEngraving.sprite = StyleManager.StyleSettings.GetSpriteFromCard(card);
+        _tileEngraving.enabled = true;
+      }
+      if (_tileBackground != null) {
+        _tileBackground.sprite = StyleManager.StyleSettings.TileBackground;
+        _tileBackground.color = StyleManager.StyleSettings.TileFrontFill;
+      }
     }
-    switch (card.Suit) {
-      case Suit.None:
-        _valueTextObj.text = "";
-        _suitTextObj.text = "";
-        if (_tileBackground != null) {
-          _tileBackground.color = StyleManager.StyleSettings.TileBackFill;
-        }
-        if (_tileEngraving != null) {
-          _tileEngraving.enabled = false;
-        }
-        return;
-      case Suit.Dragon:
-        _valueTextObj.text = Constants.IntToDragon(card.Value);
-        return;
-      case Suit.Wind:
-        _valueTextObj.text = Constants.IntToWind(card.Value);
-        return;
-      default:
-        _valueTextObj.text = $"{card.Value}";
-        return;
+    if (!_overrideDefaultButtonFunction) {
+      _cardButton.onClick.RemoveAllListeners();
+      AddOnClickListener(HandleCardClicked);
     }
+  }
+
+  private void HandleCardClicked() {
+    SetButtonEnabled(false);
+    RoundManager.Singleton.Discard(Card);
+  }
+
+  public void SetButtonEnabled(bool enabled) {
+    _cardButton.interactable = enabled;
+  }
+
+  public void AddOnClickListener(UnityEngine.Events.UnityAction call) {
+    _cardButton.onClick.AddListener(call);
   }
 }

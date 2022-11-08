@@ -19,8 +19,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   private List<Card> _localHand;
 
-  public event Action<Player> OnDrawStarted;
+  public event Action<Player, Card> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
+  public event Action<Card> OnDiscard;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -143,15 +144,15 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     _handDictionary[revealer].RevealFlower(card);
   }
 
-  public void StartDraw(Player turnPlayer) {
+  public void StartTurn(Player turnPlayer, Card lastDiscard) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleDrawStarted", RpcTarget.All, turnPlayer);
+      photonView.RPC("RpcClientHandleTurnStarted", RpcTarget.All, turnPlayer, lastDiscard);
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleDrawStarted(Player turnPlayer) {
-    OnDrawStarted?.Invoke(turnPlayer); // Enables drawing in TableDisplay
+  private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard) {
+    OnTurnStarted?.Invoke(turnPlayer, lastDiscard);
   }
 
   public void RequestDiscard(Player requestedPlayer) {
@@ -164,8 +165,20 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   private void RpcClientHandleDiscardRequested(Player requestedPlayer) {
     OnDiscardRequested?.Invoke(requestedPlayer);
     if (requestedPlayer == PhotonNetwork.LocalPlayer) {
-      _handDictionary[requestedPlayer].EnableDiscard();
+      _handDictionary[requestedPlayer].SetDiscardEnabled(true);
     }
+  }
+
+  public void Discard(Player target, Card discard) {
+    if (PhotonNetwork.IsMasterClient) {
+      photonView.RPC("RpcClientHandleDiscard", RpcTarget.All, target, discard);
+    }
+  }
+
+  [PunRPC]
+  private void RpcClientHandleDiscard(Player target, Card discard) {
+    OnDiscard?.Invoke(discard);
+    _handDictionary[target].RemoveFromHand(discard);
   }
 
   public void ClearHands() {

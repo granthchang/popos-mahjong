@@ -35,7 +35,7 @@ public class HandDisplay : ActivatablePanel {
     Card.ClearCardsInTransform(_hiddenHand);
     _nextLockIndex = 1;
   }
-  
+
   public void SetPlayer(Player player) {
     if (_playerAvatar) {
       _playerAvatar.SetItem(player, 0);
@@ -44,7 +44,9 @@ public class HandDisplay : ActivatablePanel {
 
   public void AddCard(Card card) {
     GameObject newCard = GameObject.Instantiate(_cardPrefab, _hiddenHand.transform);
-    newCard.GetComponent<CardDisplay>().SetCard(card);
+    CardDisplay cd = newCard.GetComponent<CardDisplay>();
+    cd.SetCard(card);
+    cd.AddOnClickListener(() => { SetDiscardEnabled(false); });
   }
 
   public void RevealFlower(Card card) {
@@ -57,9 +59,25 @@ public class HandDisplay : ActivatablePanel {
     Card.SortCardsInTransform(_hiddenHand);
   }
 
-  public void EnableDiscard() {
-    // TODO - Enable discarding
-    Debug.Log("HandDisplay: DISCARD ENABLED");
+  public void SetDiscardEnabled(bool enabled) {
+    foreach (Transform child in _hiddenHand) {
+      CardDisplay cd = child.GetComponent<CardDisplay>();
+      if (cd != null) {
+        cd.SetButtonEnabled(enabled);
+      }
+    }
+  }
+
+  public void RemoveFromHand(Card discard) {
+    foreach (Transform child in _hiddenHand) {
+      CardDisplay cd = child.GetComponent<CardDisplay>();
+      if (cd != null) {
+        if ((_isLocalHand && cd.Card == discard) || (!_isLocalHand && cd.Card == Card.Unknown)) {
+          GameObject.DestroyImmediate(child.gameObject);
+          return;
+        }
+      }
+    }
   }
 
   public void LockCards(List<Card> cardsToLock, Card cardFromDiscard) {
@@ -80,9 +98,8 @@ public class HandDisplay : ActivatablePanel {
         RectTransform modalTransform = _lockModal.GetComponent<RectTransform>();
         modalTransform.localPosition = modalTransform.localPosition + new Vector3(offset, 0, 0);
       }
-    }
-    else {
-      int numToRemove = (cardFromDiscard == null) ? cardsToLock.Count : cardsToLock.Count-1;
+    } else {
+      int numToRemove = (cardFromDiscard == null) ? cardsToLock.Count : cardsToLock.Count - 1;
       for (int i = 0; i < numToRemove; i++) {
         foreach (Transform child in _hiddenHand) {
           CardDisplay cd = child.GetComponent<CardDisplay>();

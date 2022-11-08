@@ -13,6 +13,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   public event Action OnRoundStarted;
   public event Action OnRoundStopped;
   private List<Player> _players;
+  private int _turnIndex;
 
   public event Action<Player, Player, int> OnRoundFinished;
   private Player _winner = null;
@@ -23,6 +24,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   public void StartRound(List<Player> players, int startIndex, int wind) {
     if (PhotonNetwork.IsMasterClient) {
       _players = players;
+      _turnIndex = startIndex;
       _winner = null;
       _loser = null;
       _deck = new Deck();
@@ -50,7 +52,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
       }
 
       // Start first turn
-      PlayerManager.Singleton.StartDraw(_players[startIndex]);
+      PlayerManager.Singleton.StartTurn(_players[startIndex], null);
 
       // // TEST CASE
       // _currentCoroutine = SetRandomWinner();
@@ -64,8 +66,24 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcMasterHandleDrawRequested(Player sender) {
-    PlayerManager.Singleton.SendCard(sender, _deck.Draw());
+    Card c = _deck.Draw();
+    while (c.Suit == Suit.Flower) {
+      PlayerManager.Singleton.RevealFlower(sender, c);
+      c = _deck.Draw();
+    }
+    PlayerManager.Singleton.SendCard(sender, c);
     PlayerManager.Singleton.RequestDiscard(sender);
+  }
+
+  public void Discard(Card discard) {
+    photonView.RPC("RpcMasterHandleDiscard", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, discard);
+  }
+
+  [PunRPC]
+  private void RpcMasterHandleDiscard(Player sender, Card discard) {
+    PlayerManager.Singleton.Discard(sender, discard);
+    _turnIndex = (_turnIndex + 1) % _players.Count;
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard);
   }
 
 

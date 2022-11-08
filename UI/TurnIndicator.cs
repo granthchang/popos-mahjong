@@ -1,25 +1,31 @@
+using CardUtilities;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class TurnIndicator : MonoBehaviour {
+public class TurnIndicator : ActivatablePanel {
   [SerializeField] private TMP_Text _indicatorText;
   [SerializeField] private string _isDrawingText = "{player} is drawing...";
   [SerializeField] private string _isDiscardingText = "{player} is discarding...";
 
-  private void Awake() {
-    PlayerManager.Singleton.OnDrawStarted += HandleDrawStarted;
+  protected override void Awake() {
+    base.Awake();
+    
+    RoundManager.Singleton.OnRoundStarted += () => { ActivatePanel(true); };
+    RoundManager.Singleton.OnRoundFinished += (a, b, c) => { ActivatePanel(false); };
+    RoundManager.Singleton.OnRoundStopped += () => { ActivatePanel(false); };
+
+    PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
     PlayerManager.Singleton.OnDiscardRequested += HandleDiscardRequested;
   }
 
-  private void HandleDrawStarted(Player target) {
+  private void HandleTurnStarted(Player target, Card lastDiscard) {
     _indicatorText.text = _isDrawingText.Replace("{player}", target.NickName);
   }
 
   private void HandleDiscardRequested(Player target) {
     _indicatorText.text = _isDiscardingText.Replace("{player}", target.NickName);
   }
-
 }
