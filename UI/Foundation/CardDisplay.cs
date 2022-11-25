@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class CardDisplay : MonoBehaviour {
   public Card Card { get; private set; }
+  [SerializeField] private Image _tileHover;
   [SerializeField] private Image _tileBackground;
   [SerializeField] private Image _tileEngraving;
   [SerializeField] private Button _cardButton;
@@ -39,6 +40,7 @@ public class CardDisplay : MonoBehaviour {
 
   public void SetButtonEnabled(bool enabled) {
     _cardButton.interactable = enabled;
+    _tileHover.raycastTarget = enabled;
   }
 
   public void AddOnClickListener(UnityEngine.Events.UnityAction call) {

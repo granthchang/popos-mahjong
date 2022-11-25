@@ -9,6 +9,8 @@ public class TurnIndicator : ActivatablePanel {
   [SerializeField] private TMP_Text _indicatorText;
   [SerializeField] private string _isDrawingText = "{player} is drawing...";
   [SerializeField] private string _isDiscardingText = "{player} is discarding...";
+  [SerializeField] private string _isDiscardConsideredText = "{player} is considering...";
+
 
   protected override void Awake() {
     base.Awake();
@@ -19,6 +21,7 @@ public class TurnIndicator : ActivatablePanel {
 
     PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
     PlayerManager.Singleton.OnDiscardRequested += HandleDiscardRequested;
+    PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
   }
 
   private void HandleTurnStarted(Player target, Card lastDiscard) {
@@ -27,5 +30,9 @@ public class TurnIndicator : ActivatablePanel {
 
   private void HandleDiscardRequested(Player target) {
     _indicatorText.text = _isDiscardingText.Replace("{player}", target.NickName);
+  }
+
+  private void HandleDiscardConsidered(Player target) {
+    _indicatorText.text = _isDiscardConsideredText.Replace("{player}", target.NickName);
   }
 }

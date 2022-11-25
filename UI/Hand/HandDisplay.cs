@@ -80,7 +80,16 @@ public class HandDisplay : ActivatablePanel {
     }
   }
 
+  public void OpenLockModal(List<List<Card>> sets, Card discard) {
+    _lockModal.OpenLockModal(sets);
+    _lockModal.OnOptionSelected += (a) => {
+      Debug.Log("Lock seen by HandDisplay");
+    };
+  }
+
   public void LockCards(List<Card> cardsToLock, Card cardFromDiscard) {
+    Debug.Log("Locking set");
+
     foreach (Card c in cardsToLock) {
       GameObject newCard = GameObject.Instantiate(_cardPrefab, _lockedHand);
       newCard.GetComponent<CardDisplay>().SetCard(c);
@@ -88,8 +97,19 @@ public class HandDisplay : ActivatablePanel {
       _nextLockIndex++;
     }
     if (_isLocalHand) {
-      // TODO - remove specific cards from hand
-
+      // Remove cards from hand
+      List<Card> cardsToRemove = new List<Card>(cardsToLock);
+      cardsToRemove.Remove(cardFromDiscard);
+      Debug.Log(cardsToRemove.Count);
+      foreach (Card c in cardsToRemove) {
+        foreach (Transform obj in _hiddenHand) {
+          CardDisplay cd = obj.GetComponent<CardDisplay>();
+          if (cd != null && cd.Card == c) {
+            GameObject.DestroyImmediate(obj.gameObject);
+            break;
+          }
+        }
+      }
       // Shift LockModal
       if (_lockModal != null) {
         float spacing = _lockedHand.GetComponent<HorizontalLayoutGroup>().spacing;
@@ -99,7 +119,7 @@ public class HandDisplay : ActivatablePanel {
         modalTransform.localPosition = modalTransform.localPosition + new Vector3(offset, 0, 0);
       }
     } else {
-      int numToRemove = (cardFromDiscard == null) ? cardsToLock.Count : cardsToLock.Count - 1;
+      int numToRemove = cardsToLock.Count - 1;
       for (int i = 0; i < numToRemove; i++) {
         foreach (Transform child in _hiddenHand) {
           CardDisplay cd = child.GetComponent<CardDisplay>();

@@ -94,7 +94,7 @@ namespace CardUtilities {
 
     public override bool Equals(object obj) {
       if (obj is Card) {
-        return this.Equals((Card)obj);
+        return this.CompareTo((Card)obj) == 0;
       }
       return false;
     }

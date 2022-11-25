@@ -8,13 +8,14 @@ public class LockModal : ActivatablePanel {
   public event Action<List<Card>> OnOptionSelected;
 
   public void OpenLockModal(List<List<Card>> sets) {
+    Reset();
     foreach (List<Card> set in sets) {
       GameObject newOption = GameObject.Instantiate(_lockOptionPrefab, this.transform);
       LockOption lo = newOption.GetComponent<LockOption>();
       lo.SetLockOption(set);
-      lo.OnClick += OnOptionSelected;
       lo.OnClick += (s) => {
-        Reset();
+        Debug.Log("Lock seen by LockModal");
+        OnOptionSelected(s);
         ActivatePanel(false);
       };
     }
@@ -25,6 +26,5 @@ public class LockModal : ActivatablePanel {
     foreach (Transform child in this.transform) {
       GameObject.Destroy(child.gameObject);
     }
-    OnOptionSelected = null;
   }
 }

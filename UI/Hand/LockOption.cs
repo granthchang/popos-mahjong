@@ -7,22 +7,25 @@ using UnityEngine.UI;
 public class LockOption : MonoBehaviour {
   [SerializeField] private GameObject _cardPrefab;
   public event Action<List<Card>> OnClick;
+  [SerializeField] private Button _optionButton;
+  private List<Card> _set;
 
-  public void SetLockOption(List<Card> cards) {
+  public void SetLockOption(List<Card> set) {
+    _set = set;
     // Display cards
-    foreach (Transform child in this.transform) {
-      GameObject.Destroy(child.gameObject);
-    }
-    foreach (Card c in cards) {
+    Card.ClearCardsInTransform(this.transform);
+    foreach (Card c in set) {
       GameObject newCard = GameObject.Instantiate(_cardPrefab, this.transform);
       newCard.GetComponent<CardDisplay>().SetCard(c);
+      newCard.GetComponent<CardDisplay>().SetButtonEnabled(false);
     }
-    // Set size for button
-    float spacing = this.GetComponent<HorizontalLayoutGroup>().spacing;
-    Vector2 cardSize = _cardPrefab.GetComponent<RectTransform>().sizeDelta;
-    float newX = (cardSize.x * cards.Count) + (spacing * (cards.Count - 1));
-    this.GetComponent<RectTransform>().sizeDelta = new Vector2(newX, cardSize.y);
-    // Set button event
-    this.GetComponent<Button>().onClick.AddListener(() => OnClick.Invoke(cards));
+    _optionButton.onClick.RemoveAllListeners();
+    _optionButton.onClick.AddListener(HandleOptionClicked);
+  }
+
+  private void HandleOptionClicked() {
+    Debug.Log("Lock seen by LockOption");
+    OnClick.Invoke(_set);
+    RoundManager.Singleton.LockCards(_set);
   }
 }
