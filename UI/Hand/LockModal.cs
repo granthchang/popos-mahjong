@@ -6,6 +6,7 @@ using UnityEngine;
 public class LockModal : ActivatablePanel {
   [SerializeField] private GameObject _lockOptionPrefab;
   public event Action<List<Card>> OnOptionSelected;
+  public event Action OnLockModalClosed;
 
   public void OpenLockModal(List<List<Card>> sets) {
     Reset();
@@ -14,17 +15,23 @@ public class LockModal : ActivatablePanel {
       LockOption lo = newOption.GetComponent<LockOption>();
       lo.SetLockOption(set);
       lo.OnClick += (s) => {
-        Debug.Log("Lock seen by LockModal");
-        OnOptionSelected(s);
+        OnOptionSelected?.Invoke(s);
         ActivatePanel(false);
       };
     }
     ActivatePanel(true);
   }
 
+  public void CloseLockModal() {
+    ActivatePanel(false);
+    RoundManager.Singleton.CancelConsiderDiscard();
+  }
+
   public void Reset() {
     foreach (Transform child in this.transform) {
-      GameObject.Destroy(child.gameObject);
+      if (child.GetComponent<LockOption>() != null) {
+        GameObject.Destroy(child.gameObject);
+      }
     }
   }
 }

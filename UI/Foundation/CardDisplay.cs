@@ -27,15 +27,6 @@ public class CardDisplay : MonoBehaviour {
         _tileBackground.color = StyleManager.StyleSettings.TileFrontFill;
       }
     }
-    if (!_overrideDefaultButtonFunction) {
-      _cardButton.onClick.RemoveAllListeners();
-      AddOnClickListener(HandleCardClicked);
-    }
-  }
-
-  private void HandleCardClicked() {
-    SetButtonEnabled(false);
-    RoundManager.Singleton.Discard(Card);
   }
 
   public void SetButtonEnabled(bool enabled) {

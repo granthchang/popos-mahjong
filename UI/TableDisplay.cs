@@ -8,11 +8,12 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class TableDisplay : ActivatablePanel {
-  [SerializeField] private Button _deckButton;
-  [SerializeField] private Button _lastDiscardButton;
+  [SerializeField] private Button _deckDisplay;
+  private CardDisplay _lastDiscardDisplay;
   [SerializeField] private Transform _discardHistory;
+  [SerializeField] private Button _discardButton;
   [SerializeField] private GameObject _cardPrefab;
-  private Card _lastDiscard;
+  // private Card _lastDiscard;
 
   protected override void Awake() {
     base.Awake();
@@ -22,40 +23,52 @@ public class TableDisplay : ActivatablePanel {
     };
     RoundManager.Singleton.OnRoundStopped += () => { ActivatePanel(false); };
     PlayerManager.Singleton.OnDiscard += HandleDiscard;
+    PlayerManager.Singleton.OnCanUseDiscardChecked += HandleCanUseDiscardChecked;
     PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
     PlayerManager.Singleton.OnDiscardUsed += HandleDiscardUsed;
   }
 
   public void Reset() {
-    _deckButton.interactable = false;
+    _deckDisplay.interactable = false;
     Card.ClearCardsInTransform(_discardHistory);
-    _lastDiscardButton.gameObject.SetActive(false);
-    _lastDiscard = null;
   }
 
-  private void HandleDiscard(Card discard, bool canUseDiscard) {
-    if (_lastDiscard != null) {
-      GameObject c = GameObject.Instantiate(_cardPrefab, _discardHistory);
-      c.GetComponent<CardDisplay>().SetCard(_lastDiscard);
+  private void HandleDiscard(Card discard) {
+    // If there is a previous discard, disable its button
+    if (_lastDiscardDisplay != null) {
+      _lastDiscardDisplay.SetButtonEnabled(false);
     }
-    _lastDiscardButton.gameObject.SetActive(true);
-    _lastDiscardButton.GetComponent<CardDisplay>().SetCard(discard);
-    _lastDiscardButton.GetComponent<CardDisplay>().SetButtonEnabled(canUseDiscard);
-    _lastDiscard = discard;
+    // Add the new discard to history
+    GameObject c = GameObject.Instantiate(_cardPrefab, _discardHistory);
+    CardDisplay cd = c.GetComponent<CardDisplay>();
+    cd.SetCard(discard);
+    cd.SetButtonEnabled(false);
+    _lastDiscardDisplay = cd;
+    // cd.RemoveOnClickListeners();
+    cd.AddOnClickListener(() => {
+      cd.SetButtonEnabled(false);
+      RoundManager.Singleton.ConsiderDiscard();
+    });
+  }
+
+  private void HandleCanUseDiscardChecked(bool canUse) {
+    _lastDiscardDisplay.gameObject.SetActive(true);
+    _lastDiscardDisplay.SetButtonEnabled(canUse);
   }
 
   private void HandleTurnStarted(Player target, Card lastDiscard) {
     if (target == PhotonNetwork.LocalPlayer) {
-      _deckButton.interactable = true;
+      _deckDisplay.interactable = true;
     }
   }
 
   private void HandleDiscardConsidered(Player target) {
-    _deckButton.interactable = false;
+    _deckDisplay.interactable = false;
+    _lastDiscardDisplay.SetButtonEnabled(false);
   }
 
   private void HandleDiscardUsed(Card discard) {
-    _lastDiscardButton.gameObject.SetActive(false);
+    GameObject.Destroy(_lastDiscardDisplay.gameObject);
   }
 }

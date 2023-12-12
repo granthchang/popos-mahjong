@@ -21,7 +21,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public event Action<Player, Card> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
-  public event Action<Card, bool> OnDiscard;
+  public event Action<Card> OnDiscard;
+  public event Action<bool> OnCanUseDiscardChecked;
 
   public event Action<Player> OnDiscardConsidered;
   public event Action<Card> OnDiscardUsed;
@@ -86,7 +87,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       _handDictionary.Add(p, h);
       h.SetPlayer(p);
       h.ActivatePanel(true);
-      Debug.Log($"{p.NickName} : {h.name}");
     }
   }
 
@@ -183,22 +183,32 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     if (target == PhotonNetwork.LocalPlayer) {
       _localHand.Remove(discard);
     }
-    List<List<Card>> possibleSets = GetPossibleSets(discard);
-    foreach (List<Card> set in possibleSets) {
-      string str = "";
-      foreach (Card c in set) {
-        str += $"{c.ToString()}, ";
-      }
-      Debug.Log(str);
-    }
-    bool canUseDiscard = (target != PhotonNetwork.LocalPlayer) && (possibleSets.Count > 0);
-    OnDiscard?.Invoke(discard, canUseDiscard);
+    List<List<Card>> possibleSets = GetAllPossibleSets(discard);
     _handDictionary[target].RemoveFromHand(discard);
+    OnDiscard?.Invoke(discard);
   }
 
-  private List<List<Card>> GetPossibleSets(Card discard) {
+  public void CheckCanUseDiscard(Player discarder, Player turnPlayer, Card discard) {
+    if (PhotonNetwork.IsMasterClient) {
+      photonView.RPC("RpcClientHandleCanUseDiscardChecked", RpcTarget.All, discarder, turnPlayer, discard);
+    }
+  }
+
+  [PunRPC]
+  private void RpcClientHandleCanUseDiscardChecked(Player sender, Player turnPlayer, Card discard) {
+    List<List<Card>> possibleSets;
+    if (sender == PhotonNetwork.LocalPlayer) {
+      return;
+    } else if (turnPlayer == PhotonNetwork.LocalPlayer) {
+      possibleSets = GetAllPossibleSets(discard);
+    } else {
+      possibleSets = GetPossiblePongs(discard);
+    }
+    OnCanUseDiscardChecked?.Invoke(possibleSets.Count > 0);
+  }
+
+  private List<List<Card>> GetPossiblePongs(Card discard) {
     List<List<Card>> usableSets = new List<List<Card>>();
-    // Find pongs or kongs.
     int duplicateCount = 0;
     foreach (Card c in _localHand) {
       if (c == discard) {
@@ -217,7 +227,14 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
         usableSets.Add(kong);
       }
     }
-    // Find sets.
+    return usableSets;
+  }
+
+  private List<List<Card>> GetAllPossibleSets(Card discard) {
+    List<List<Card>> usableSets = GetPossiblePongs(discard);
+    if (!(discard.Suit == Suit.Circle || discard.Suit == Suit.Man || discard.Suit == Suit.Stick)) {
+      return usableSets;
+    }
     if (discard.Value >= 3) {
       Card c1 = new Card(discard.Suit, discard.Value - 2, 0);
       Card c2 = new Card(discard.Suit, discard.Value - 1, 0);
@@ -254,16 +271,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     return usableSets;
   }
 
-  public void ConsiderDiscard(Player target, Card discard) {
+  public void ConsiderDiscard(Player sender, Card discard) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleDiscardConsidered", RpcTarget.All, target, discard);
+      photonView.RPC("RpcClientHandleDiscardConsidered", RpcTarget.All, sender, discard);
     }
   }
 
   [PunRPC]
   private void RpcClientHandleDiscardConsidered(Player target, Card discard) {
     if (target == PhotonNetwork.LocalPlayer) {
-      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(GetPossibleSets(discard), discard);
+      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(GetAllPossibleSets(discard), discard);
     }
     OnDiscardConsidered?.Invoke(target);
   }
@@ -277,6 +294,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleCardsLocked(Player target, List<Card> set, Card discard) {
     _handDictionary[target].LockCards(set, discard);
+    if (target == PhotonNetwork.LocalPlayer) {
+      List<Card> cardsToRemove = new List<Card>(set);
+      cardsToRemove.Remove(discard);
+      foreach(Card c in cardsToRemove) {
+        _localHand.Remove(c);
+      }
+    }
     OnDiscardUsed?.Invoke(discard);
   }
 
@@ -292,17 +316,4 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     }
     _localHand = new List<Card>();
   }
-
-  // // Testing
-  // private void Update() {
-  //   // When L is pressed, Lock set for an opposing player
-  //   if (Input.GetKeyDown(KeyCode.L)) {
-  //     List<Card> set0 = new List<Card>();
-  //     set0.Add(new Card(Suit.Circle, 2, 1));
-  //     set0.Add(new Card(Suit.Circle, 3, 1));
-  //     set0.Add(new Card(Suit.Circle, 4, 1));
-
-  //     _handDisplays2p[1].LockCards(set0, new Card(Suit.Circle, 3, 1));
-  //   }
-  // }
 }

@@ -24,7 +24,6 @@ public class LockOption : MonoBehaviour {
   }
 
   private void HandleOptionClicked() {
-    Debug.Log("Lock seen by LockOption");
     OnClick.Invoke(_set);
     RoundManager.Singleton.LockCards(_set);
   }

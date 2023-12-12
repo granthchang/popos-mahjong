@@ -85,6 +85,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     PlayerManager.Singleton.Discard(sender, discard);
     _lastDiscard = discard;
     _turnIndex = (_players.IndexOf(sender) + 1) % _players.Count;
+    PlayerManager.Singleton.CheckCanUseDiscard(sender, _players[_turnIndex], discard);
     PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard);
   }
 
@@ -98,14 +99,34 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   }
 
   public void LockCards(List<Card> set) {
-    photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, set, _lastDiscard);
+    photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, set);
   }
 
   [PunRPC]
-  private void RpcMasterHandleCardsLocked(Player sender, List<Card> set, Card discard) {
-    PlayerManager.Singleton.LockCards(sender, set, discard);
+  private void RpcMasterHandleCardsLocked(Player sender, List<Card> set) {
+    PlayerManager.Singleton.LockCards(sender, set, _lastDiscard);
+    // If the set was a kong, send a card to replace the extra card in the set.
+    if (set.Count > 3) {
+      Card c = _deck.Draw();
+      while (c.Suit == Suit.Flower) {
+        PlayerManager.Singleton.RevealFlower(sender, c);
+        c = _deck.Draw();
+      }
+      PlayerManager.Singleton.SendCard(sender, c);
+    }
     PlayerManager.Singleton.RequestDiscard(sender);
   }
+
+  public void CancelConsiderDiscard() {
+    photonView.RPC("RpcMasterHandleConsiderDiscardCancelled", RpcTarget.MasterClient);
+  }
+
+  [PunRPC]
+  private void RpcMasterHandleConsiderDiscardCancelled() {
+    PlayerManager.Singleton.CheckCanUseDiscard(_players[_turnIndex-1], _players[_turnIndex], _lastDiscard);
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard);
+  }
+
 
   public void StopRound() {
     if (_currentCoroutine != null) {
