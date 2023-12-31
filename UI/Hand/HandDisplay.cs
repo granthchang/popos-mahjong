@@ -17,6 +17,9 @@ public class HandDisplay : ActivatablePanel {
   [SerializeField] bool _isLocalHand = false;
 
   public event Action<List<Card>> OnSetLocked;
+  public event Action<Card> OnCardSelected;
+  private CardDisplay _selectedCardDisplay;
+
   private int _nextLockIndex = 1;
 
   public void Reset() {
@@ -47,9 +50,12 @@ public class HandDisplay : ActivatablePanel {
     CardDisplay cd = newCard.GetComponent<CardDisplay>();
     cd.SetCard(card);
     cd.AddOnClickListener(() => {
-      SetDiscardEnabled(false);
+      if (_selectedCardDisplay != null) {
+        _selectedCardDisplay.SetButtonEnabled(true);
+      }
+      _selectedCardDisplay = cd;
       cd.SetButtonEnabled(false);
-      RoundManager.Singleton.Discard(cd.Card);
+      OnCardSelected?.Invoke(cd.Card);
     });
   }
 

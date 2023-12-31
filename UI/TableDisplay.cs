@@ -22,6 +22,7 @@ public class TableDisplay : ActivatablePanel {
       ActivatePanel(true);
     };
     RoundManager.Singleton.OnRoundStopped += () => { ActivatePanel(false); };
+    PlayerManager.Singleton.OnCardSelected += HandleCardSelected;
     PlayerManager.Singleton.OnDiscard += HandleDiscard;
     PlayerManager.Singleton.OnCanUseDiscardChecked += HandleCanUseDiscardChecked;
     PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
@@ -70,5 +71,15 @@ public class TableDisplay : ActivatablePanel {
 
   private void HandleDiscardUsed(Card discard) {
     GameObject.Destroy(_lastDiscardDisplay.gameObject);
+  }
+
+  private void HandleCardSelected(Card selectedCard) {
+    _discardButton.interactable = true;
+    _discardButton.onClick.RemoveAllListeners();
+    _discardButton.onClick.AddListener(() => {
+      _discardButton.interactable = false;
+      PlayerManager.Singleton.SetDiscardEnabled(false);
+      RoundManager.Singleton.Discard(selectedCard);
+    });
   }
 }

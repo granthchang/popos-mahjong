@@ -21,6 +21,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public event Action<Player, Card> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
+  public event Action<Card> OnCardSelected;
   public event Action<Card> OnDiscard;
   public event Action<bool> OnCanUseDiscardChecked;
 
@@ -53,6 +54,19 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       hd.ActivatePanel(false);
       hd.Reset();
     }
+  }
+
+  public void ClearHands() {
+    photonView.RPC("RpcClientHandleHandsCleared", RpcTarget.All);
+  }
+
+  [PunRPC]
+  private void RpcClientHandleHandsCleared() {
+    foreach (KeyValuePair<Player, HandDisplay> pair in _handDictionary) {
+      pair.Value.Reset();
+      pair.Value.SetPlayer(pair.Key);
+    }
+    _localHand = new List<Card>();
   }
 
   public void SetHandOwners(List<Player> players) {
@@ -88,6 +102,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       h.SetPlayer(p);
       h.ActivatePanel(true);
     }
+    _handDictionary[PhotonNetwork.LocalPlayer].OnCardSelected += (c) => OnCardSelected?.Invoke(c);
   }
 
   public void SendCard(Player target, Card card) {
@@ -170,6 +185,10 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     if (requestedPlayer == PhotonNetwork.LocalPlayer) {
       _handDictionary[requestedPlayer].SetDiscardEnabled(true);
     }
+  }
+
+  public void SetDiscardEnabled(bool enabled) {
+    _handDictionary[PhotonNetwork.LocalPlayer].SetDiscardEnabled(enabled);
   }
 
   public void Discard(Player target, Card discard) {
@@ -302,18 +321,5 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       }
     }
     OnDiscardUsed?.Invoke(discard);
-  }
-
-  public void ClearHands() {
-    photonView.RPC("RpcClientHandleHandsCleared", RpcTarget.All);
-  }
-
-  [PunRPC]
-  private void RpcClientHandleHandsCleared() {
-    foreach (KeyValuePair<Player, HandDisplay> pair in _handDictionary) {
-      pair.Value.Reset();
-      pair.Value.SetPlayer(pair.Key);
-    }
-    _localHand = new List<Card>();
   }
 }
