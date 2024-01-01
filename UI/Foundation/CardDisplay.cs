@@ -9,7 +9,6 @@ public class CardDisplay : MonoBehaviour {
   [SerializeField] private Image _tileBackground;
   [SerializeField] private Image _tileEngraving;
   [SerializeField] private Button _cardButton;
-  [SerializeField] private bool _overrideDefaultButtonFunction;
 
   public void SetCard(CardUtilities.Card card) {
     Card = card;

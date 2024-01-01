@@ -17,7 +17,7 @@ public class HandDisplay : ActivatablePanel {
   [SerializeField] bool _isLocalHand = false;
 
   public event Action<List<Card>> OnSetLocked;
-  public event Action<Card> OnCardSelected;
+  public event Action<Card> OnSelectedCardChanged;
   private CardDisplay _selectedCardDisplay;
 
   private int _nextLockIndex = 1;
@@ -55,7 +55,7 @@ public class HandDisplay : ActivatablePanel {
       }
       _selectedCardDisplay = cd;
       cd.SetButtonEnabled(false);
-      OnCardSelected?.Invoke(cd.Card);
+      OnSelectedCardChanged?.Invoke(cd.Card);
     });
   }
 
@@ -70,6 +70,9 @@ public class HandDisplay : ActivatablePanel {
   }
 
   public void SetDiscardEnabled(bool enabled) {
+    if (!enabled) {
+      CloseLockModal();
+    }
     foreach (Transform child in _hiddenHand) {
       CardDisplay cd = child.GetComponent<CardDisplay>();
       if (cd != null) {
@@ -91,22 +94,32 @@ public class HandDisplay : ActivatablePanel {
   }
 
   public void OpenLockModal(List<List<Card>> sets, Card discard) {
-    _lockModal.OpenLockModal(sets);
+    _lockModal.OpenLockModal(sets, discard);
+  }
+
+  public void CloseLockModal() {
+    _lockModal.CloseLockModal();
   }
 
   public void LockCards(List<Card> cardsToLock, Card cardFromDiscard) {
+    // Add cards to locked hand
     foreach (Card c in cardsToLock) {
       GameObject newCard = GameObject.Instantiate(_cardPrefab, _lockedHand);
       newCard.GetComponent<CardDisplay>().SetCard(c);
       newCard.transform.SetSiblingIndex(_nextLockIndex);
       _nextLockIndex++;
     }
+
+    // Remove cards from hidden hand
     List<Card> cardsToRemove = new List<Card>(cardsToLock);
-    int index = cardsToRemove.IndexOf(cardFromDiscard);
-    cardsToRemove.Remove(cardFromDiscard);
+    if (cardFromDiscard != null) {
+      cardsToRemove.Remove(cardFromDiscard);
+    }
     foreach (Card c in cardsToRemove) {
       RemoveFromHand(c);
     }
+
+    // Move lock modal to the end of the locked hand
     if (_isLocalHand && _lockModal != null) {
       float spacing = _lockedHand.GetComponent<HorizontalLayoutGroup>().spacing;
       Vector2 cardSize = _cardPrefab.GetComponent<RectTransform>().sizeDelta;

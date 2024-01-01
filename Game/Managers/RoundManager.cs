@@ -19,7 +19,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   private Player _winner = null;
   private Player _loser = null;
 
-  private Deck _deck = null;
+  public Deck _deck = null;
   private Card _lastDiscard = null;
 
   public void StartRound(List<Player> players, int startIndex, int wind) {
@@ -98,13 +98,13 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     PlayerManager.Singleton.ConsiderDiscard(sender, _lastDiscard);
   }
 
-  public void LockCards(List<Card> set) {
-    photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, set);
+  public void LockCards(List<Card> set, Card discard) {
+    photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, set, discard);
   }
 
   [PunRPC]
-  private void RpcMasterHandleCardsLocked(Player sender, List<Card> set) {
-    PlayerManager.Singleton.LockCards(sender, set, _lastDiscard);
+  private void RpcMasterHandleCardsLocked(Player sender, List<Card> set, Card discard) {
+    PlayerManager.Singleton.LockCards(sender, set, discard);
     // If the set was a kong, send a card to replace the extra card in the set.
     if (set.Count > 3) {
       Card c = _deck.Draw();
@@ -123,7 +123,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcMasterHandleConsiderDiscardCancelled() {
-    PlayerManager.Singleton.CheckCanUseDiscard(_players[_turnIndex-1], _players[_turnIndex], _lastDiscard);
+    PlayerManager.Singleton.CheckCanUseDiscard(_players[(_turnIndex + _players.Count - 1) % _players.Count], _players[_turnIndex], _lastDiscard);
     PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard);
   }
 
@@ -153,7 +153,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   }
 
   // For testing purposes. Sets winner to a random player, and the loser to a random other player
-  private IEnumerator SetRandomWinner() {
+  public IEnumerator SetRandomWinner() {
     yield return new WaitForSeconds(5);
 
     System.Random rand = new System.Random();

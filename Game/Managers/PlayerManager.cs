@@ -21,7 +21,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public event Action<Player, Card> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
-  public event Action<Card> OnCardSelected;
+  public event Action<Card> OnSelectedCardChanged;
   public event Action<Card> OnDiscard;
   public event Action<bool> OnCanUseDiscardChecked;
 
@@ -102,7 +102,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       h.SetPlayer(p);
       h.ActivatePanel(true);
     }
-    _handDictionary[PhotonNetwork.LocalPlayer].OnCardSelected += (c) => OnCardSelected?.Invoke(c);
+    _handDictionary[PhotonNetwork.LocalPlayer].OnSelectedCardChanged += HandleSelectedCardChanged;
   }
 
   public void SendCard(Player target, Card card) {
@@ -226,6 +226,31 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     OnCanUseDiscardChecked?.Invoke(possibleSets.Count > 0);
   }
 
+  private void HandleSelectedCardChanged(Card card) {
+    OnSelectedCardChanged?.Invoke(card);
+    _handDictionary[PhotonNetwork.LocalPlayer].CloseLockModal();
+
+    // If this card is part of a hidden kong, display it in the lock modal
+    if (card != null) {
+      int duplicateCount = 0;
+      foreach (Card c in _localHand) {
+        if (c == card) {
+          duplicateCount++;
+        }
+      }
+      if (duplicateCount >= 4) {
+        List<Card> kong = new List<Card>();
+        kong.Add(new Card(card.ID));
+        kong.Add(new Card(card.ID));
+        kong.Add(new Card(card.ID));
+        kong.Add(new Card(card.ID));
+        List<List<Card>> kongs = new List<List<Card>>();
+        kongs.Add(kong);
+        _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(kongs, null);
+      }
+    }
+  }
+
   private List<List<Card>> GetPossiblePongs(Card discard) {
     List<List<Card>> usableSets = new List<List<Card>>();
     int duplicateCount = 0;
@@ -312,14 +337,19 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleCardsLocked(Player target, List<Card> set, Card discard) {
+    OnSelectedCardChanged?.Invoke(null);
     _handDictionary[target].LockCards(set, discard);
     if (target == PhotonNetwork.LocalPlayer) {
       List<Card> cardsToRemove = new List<Card>(set);
-      cardsToRemove.Remove(discard);
+      if (discard != null) {
+        cardsToRemove.Remove(discard);
+      }
       foreach(Card c in cardsToRemove) {
         _localHand.Remove(c);
       }
     }
-    OnDiscardUsed?.Invoke(discard);
+    if (discard != null) {
+      OnDiscardUsed?.Invoke(discard);
+    }
   }
 }
