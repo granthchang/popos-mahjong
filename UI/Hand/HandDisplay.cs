@@ -86,6 +86,9 @@ public class HandDisplay : ActivatablePanel {
       CardDisplay cd = child.GetComponent<CardDisplay>();
       if (cd != null) {
         if ((_isLocalHand && cd.Card == discard) || (!_isLocalHand && cd.Card == Card.Unknown)) {
+          if (cd = _selectedCardDisplay) {
+            _selectedCardDisplay = null;
+          }
           GameObject.DestroyImmediate(child.gameObject);
           return;
         }

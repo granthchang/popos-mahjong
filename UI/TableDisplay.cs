@@ -54,8 +54,10 @@ public class TableDisplay : ActivatablePanel {
   }
 
   private void HandleCanUseDiscardChecked(bool canUse) {
-    _lastDiscardDisplay.gameObject.SetActive(true);
-    _lastDiscardDisplay.SetButtonEnabled(canUse);
+    if (_lastDiscardDisplay != null) {
+      _lastDiscardDisplay.gameObject.SetActive(true);
+      _lastDiscardDisplay.SetButtonEnabled(canUse);
+    }
   }
 
   private void HandleTurnStarted(Player target, Card lastDiscard) {
