@@ -24,9 +24,11 @@ public class LockModal : ActivatablePanel {
   }
 
   public void CloseLockModal() {
-    ActivatePanel(false);
-    if (_isUsingDiscard) {
-      RoundManager.Singleton.CancelConsiderDiscard();
+    if (_isPanelActivated) {
+      ActivatePanel(false);
+      if (_isUsingDiscard) {
+        RoundManager.Singleton.CancelConsiderDiscard();
+      }
     }
   }
 

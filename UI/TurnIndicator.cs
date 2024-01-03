@@ -24,7 +24,7 @@ public class TurnIndicator : ActivatablePanel {
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
   }
 
-  private void HandleTurnStarted(Player target, Card lastDiscard) {
+  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard) {
     _indicatorText.text = _isDrawingText.Replace("{player}", target.NickName);
   }
 

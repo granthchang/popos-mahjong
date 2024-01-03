@@ -21,6 +21,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
   public Deck _deck = null;
   private Card _lastDiscard = null;
+  private Player _lastDiscarder = null;
 
   public void StartRound(List<Player> players, int startIndex, int wind) {
     if (PhotonNetwork.IsMasterClient) {
@@ -53,7 +54,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
       }
 
       // Start first turn
-      PlayerManager.Singleton.StartTurn(_players[startIndex], null);
+      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null);
 
       // // TEST CASE
       // _currentCoroutine = SetRandomWinner();
@@ -84,9 +85,9 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   private void RpcMasterHandleDiscard(Player sender, Card discard) {
     PlayerManager.Singleton.Discard(sender, discard);
     _lastDiscard = discard;
+    _lastDiscarder = sender;
     _turnIndex = (_players.IndexOf(sender) + 1) % _players.Count;
-    PlayerManager.Singleton.CheckCanUseDiscard(sender, _players[_turnIndex], discard);
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard);
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender);
   }
 
   public void ConsiderDiscard() {
@@ -123,8 +124,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcMasterHandleConsiderDiscardCancelled() {
-    PlayerManager.Singleton.CheckCanUseDiscard(_players[(_turnIndex + _players.Count - 1) % _players.Count], _players[_turnIndex], _lastDiscard);
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard);
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder);
   }
 
 

@@ -23,8 +23,8 @@ public class TableDisplay : ActivatablePanel {
     };
     RoundManager.Singleton.OnRoundStopped += () => { ActivatePanel(false); };
     PlayerManager.Singleton.OnSelectedCardChanged += HandleCardSelected;
+    PlayerManager.Singleton.OnDiscardRequested += HandleDiscardRequested;
     PlayerManager.Singleton.OnDiscard += HandleDiscard;
-    PlayerManager.Singleton.OnCanUseDiscardChecked += HandleCanUseDiscardChecked;
     PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
     PlayerManager.Singleton.OnDiscardUsed += HandleDiscardUsed;
@@ -33,6 +33,12 @@ public class TableDisplay : ActivatablePanel {
   public void Reset() {
     _deckDisplay.interactable = false;
     Card.ClearCardsInTransform(_discardHistory);
+  }
+
+  private void HandleDiscardRequested(Player target) {
+    if (_lastDiscardDisplay != null) {
+      _lastDiscardDisplay.SetButtonEnabled(false);
+    }
   }
 
   private void HandleDiscard(Card discard) {
@@ -46,33 +52,30 @@ public class TableDisplay : ActivatablePanel {
     cd.SetCard(discard);
     cd.SetButtonEnabled(false);
     _lastDiscardDisplay = cd;
-    // cd.RemoveOnClickListeners();
     cd.AddOnClickListener(() => {
       cd.SetButtonEnabled(false);
       RoundManager.Singleton.ConsiderDiscard();
     });
   }
 
-  private void HandleCanUseDiscardChecked(bool canUse) {
+  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard) {
+    _deckDisplay.interactable = (target == PhotonNetwork.LocalPlayer);
     if (_lastDiscardDisplay != null) {
-      _lastDiscardDisplay.gameObject.SetActive(true);
-      _lastDiscardDisplay.SetButtonEnabled(canUse);
-    }
-  }
-
-  private void HandleTurnStarted(Player target, Card lastDiscard) {
-    if (target == PhotonNetwork.LocalPlayer) {
-      _deckDisplay.interactable = true;
+      _lastDiscardDisplay.SetButtonEnabled(canUseDiscard);
     }
   }
 
   private void HandleDiscardConsidered(Player target) {
     _deckDisplay.interactable = false;
-    _lastDiscardDisplay.SetButtonEnabled(false);
+    if (_lastDiscardDisplay != null) {
+      _lastDiscardDisplay.SetButtonEnabled(false);
+    }
   }
 
   private void HandleDiscardUsed(Card discard) {
-    GameObject.Destroy(_lastDiscardDisplay.gameObject);
+    if (_lastDiscardDisplay != null) {
+      GameObject.Destroy(_lastDiscardDisplay.gameObject);
+    }
   }
 
   private void HandleCardSelected(Card selectedCard) {
