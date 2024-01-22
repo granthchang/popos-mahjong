@@ -239,4 +239,111 @@ namespace CardUtilities {
       }
     }
   }
+
+  // Representation of a hand
+  public class Hand {
+    private List<Card> _cards;
+    
+    public Hand() {
+      Reset();
+    }
+
+    public void Reset() {
+      _cards = new List<Card>();
+    }
+
+    public void Add(Card card) {
+      _cards.Add(card);
+    }
+
+    public void Remove(Card card) {
+      if (_cards.Contains(card)) {
+        _cards.Remove(card);
+      }
+    }
+
+    public bool HasHiddenKong(Card targetCard) {
+      int duplicateCount = 0;
+      if (targetCard != null) {
+        foreach (Card c in _cards) {
+          if (c == targetCard) {
+            duplicateCount++;
+          }
+        }
+      }
+      return duplicateCount >= 4;
+    }
+
+    public List<List<Card>> GetPossiblePongsAndKongs(Card targetCard) {
+      List<List<Card>> usableSets = new List<List<Card>>();
+      if (targetCard != null) {
+        int duplicateCount = 0;
+        foreach (Card c in _cards) {
+          if (c == targetCard) {
+            duplicateCount++;
+          }
+        }
+        if (duplicateCount >= 2) {
+          List<Card> pong = new List<Card>();
+          pong.Add(new Card(targetCard.ID));
+          pong.Add(new Card(targetCard.ID));
+          pong.Add(new Card(targetCard.ID));
+          usableSets.Add(pong);
+          if (duplicateCount >= 3) {
+            List<Card> kong = new List<Card>(pong);
+            kong.Add(new Card(targetCard.ID));
+            usableSets.Add(kong);
+          }
+        }
+      }
+      return usableSets;
+    }
+
+    public List<List<Card>> GetAllPossibleSets(Card targetCard) {
+      // Check for pongs or kongs
+      List<List<Card>> usableSets = GetPossiblePongsAndKongs(targetCard);
+      if (targetCard != null) {
+        if (!(targetCard.Suit == Suit.Circle || targetCard.Suit == Suit.Man || targetCard.Suit == Suit.Stick)) {
+          return usableSets;
+        }
+        // Check for set {n-2, n-1, n}
+        if (targetCard.Value >= 3) {
+          Card c1 = new Card(targetCard.Suit, targetCard.Value - 2, 0);
+          Card c2 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
+          if (_cards.Contains(c1) && _cards.Contains(c2)) {
+            List<Card> set = new List<Card>();
+            set.Add(c1);
+            set.Add(c2);
+            set.Add(targetCard);
+            usableSets.Add(set);
+          }
+        }
+        // Check for set {n-1, n, n+1}
+        if (targetCard.Value >= 2 && targetCard.Value <= 8) {
+          Card c1 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
+          Card c2 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
+          if (_cards.Contains(c1) && _cards.Contains(c2)) {
+            List<Card> set = new List<Card>();
+            set.Add(c1);
+            set.Add(targetCard);
+            set.Add(c2);
+            usableSets.Add(set);
+          }
+        }
+        // Check for set {n, n+1, n+2}
+        if (targetCard.Value <= 7) {
+          Card c1 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
+          Card c2 = new Card(targetCard.Suit, targetCard.Value + 2, 0);
+          if (_cards.Contains(c1) && _cards.Contains(c2)) {
+            List<Card> set = new List<Card>();
+            set.Add(targetCard);
+            set.Add(c1);
+            set.Add(c2);
+            usableSets.Add(set);
+          }
+        }
+      }
+      return usableSets;
+    }
+  }
 }

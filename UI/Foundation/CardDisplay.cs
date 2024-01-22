@@ -15,8 +15,7 @@ public class CardDisplay : MonoBehaviour {
     if (card.Suit == Suit.None) {
       _tileBackground.color = StyleManager.StyleSettings.TileBackFill;
       _tileEngraving.enabled = false;
-    }
-    else {
+    } else {
       if (_tileEngraving != null) {
         _tileEngraving.sprite = StyleManager.StyleSettings.GetSpriteFromCard(card);
         _tileEngraving.enabled = true;
@@ -35,5 +34,9 @@ public class CardDisplay : MonoBehaviour {
 
   public void AddOnClickListener(UnityEngine.Events.UnityAction call) {
     _cardButton.onClick.AddListener(call);
+  }
+
+  public void RemoveAllOnClickListeners() {
+    _cardButton.onClick.RemoveAllListeners();
   }
 }
