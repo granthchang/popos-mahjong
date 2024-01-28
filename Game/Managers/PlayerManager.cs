@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerManager : MonoBehaviourPunCallbacks {
@@ -17,7 +18,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [SerializeField] private HandDisplay[] _handDisplays3p;
   [SerializeField] private HandDisplay[] _handDisplays2p;
 
-  private Hand _localHand;
+  private List<Card> _localHand;
 
   public event Action<Player, Card, bool> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
@@ -47,7 +48,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public void Reset() {
     _handDictionary = null;
-    _localHand = new Hand();
+    _localHand = null;
     foreach (HandDisplay hd in _handDisplays4p) {
       hd.ActivatePanel(false);
       hd.Reset();
@@ -64,7 +65,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       pair.Value.Reset();
       pair.Value.SetPlayer(pair.Key);
     }
-    _localHand.Reset();
+    _localHand = new List<Card>();
   }
 
   public void SetHandOwners(List<Player> players) {
@@ -168,9 +169,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard, Player discarder) {
-    List<List<Card>> usableSets = (turnPlayer == PhotonNetwork.LocalPlayer) ? _localHand.GetAllPossibleSets(lastDiscard) : _localHand.GetPossiblePongsAndKongs(lastDiscard);
-    bool canUseDiscard = usableSets.Count > 0;
-    OnTurnStarted?.Invoke(turnPlayer, lastDiscard, (discarder != PhotonNetwork.LocalPlayer) ? canUseDiscard : false);
+    bool canUseDiscard = false;
+    if (discarder != PhotonNetwork.LocalPlayer) {
+      List<List<Card>> usableSets = Hand.GetWinningHands(lastDiscard, _localHand);
+      usableSets.AddRange(Hand.GetPongsAndKongs(lastDiscard, _localHand, false));
+      if (turnPlayer == PhotonNetwork.LocalPlayer) {
+        usableSets.AddRange(Hand.GetRuns(lastDiscard, _localHand, false));
+      }
+      canUseDiscard = usableSets.Count > 0;
+    }
+    OnTurnStarted?.Invoke(turnPlayer, lastDiscard, canUseDiscard);
   }
 
   public void RequestDiscard(Player requestedPlayer) {
@@ -210,29 +218,37 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     OnSelectedCardChanged?.Invoke(card);
     _handDictionary[PhotonNetwork.LocalPlayer].CloseLockModal();
 
-    // If this card is part of a hidden kong, display it in the lock modal
-    if (_localHand.HasHiddenKong(card)) {
-      List<Card> kong = new List<Card>();
-      kong.Add(new Card(card.ID));
-      kong.Add(new Card(card.ID));
-      kong.Add(new Card(card.ID));
-      kong.Add(new Card(card.ID));
-      List<List<Card>> kongs = new List<List<Card>>();
-      kongs.Add(kong);
-      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(kongs, null);
+    // Check for hidden kongs and winning hands. If there are any, open the lock modal.
+    List<List<Card>> usableSets = Hand.GetWinningHands(null, _localHand);
+    if (Hand.CountCard(card, _localHand) >= 4) {
+      List<Card> kong = new List<Card>() {
+        new Card(card.ID),
+        new Card(card.ID),
+        new Card(card.ID),
+        new Card(card.ID)
+      };
+      List<List<Card>> kongs = new List<List<Card>>() { kong };
     }
+    if (usableSets.Count > 0) {
+      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(usableSets, null);
+    } 
   }
 
-  public void ConsiderDiscard(Player sender, Card discard) {
+  public void ConsiderDiscard(Player sender, bool isTargetsTurn, Card discard) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleDiscardConsidered", RpcTarget.All, sender, discard);
+      photonView.RPC("RpcClientHandleDiscardConsidered", RpcTarget.All, sender, isTargetsTurn, discard);
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleDiscardConsidered(Player target, Card discard) {
+  private void RpcClientHandleDiscardConsidered(Player target, bool isTargetsTurn, Card discard) {
     if (target == PhotonNetwork.LocalPlayer) {
-      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(_localHand.GetAllPossibleSets(discard), discard);
+      List<List<Card>> usableSets = Hand.GetWinningHands(discard, _localHand);
+      usableSets.AddRange(Hand.GetPongsAndKongs(discard, _localHand, false));
+      if (isTargetsTurn) {
+        usableSets.AddRange(Hand.GetRuns(discard, _localHand, false));
+      }
+      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(usableSets, discard);
     }
     OnDiscardConsidered?.Invoke(target);
   }

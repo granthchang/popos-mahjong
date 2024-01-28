@@ -8,7 +8,7 @@ public class HandTestManager : MonoBehaviour {
   public static HandTestManager Singleton;
   private int _handSize = 0;
 
-  private Hand _localHand;
+  private List<Card> _localHand;
   private Card _discard;
 
   [SerializeField] private HandDisplay _handDisplay;
@@ -22,7 +22,7 @@ public class HandTestManager : MonoBehaviour {
   }
 
   private void Start() {
-    _localHand = new Hand();
+    _localHand = new List<Card>();
     _handDisplay.Reset();
     SetDiscard(Card.Unknown);
   }
@@ -40,7 +40,7 @@ public class HandTestManager : MonoBehaviour {
   }
 
   public void ClearHand() {
-    _localHand.Reset();
+    _localHand = new List<Card>();
     _handDisplay.Reset();
     _handSize = 0;
   }
@@ -50,15 +50,27 @@ public class HandTestManager : MonoBehaviour {
     _discardDisplay.SetCard(card);
   }
 
-  public void CheckForGame() {
-    if ((_discard == Card.Unknown && _handSize == 14) || (_discard != Card.Unknown && _handSize == 13)) {
-      Debug.Log("Starting check...");
-      
-      // TODO: Algorithm to find all possible winning hands from this set of cards.
-      
-      Debug.Log($"Finished check: found {-1} possible winning hands");
-    } else {
-      Debug.Log("Cannot check: Invalid number of cards in hand.");
+  public void CheckForGame() {    
+    List<List<Card>> winningHands = Hand.GetWinningHands(_discard, _localHand);
+    _handDisplay.OpenLockModal(winningHands, _discard);
+    Debug.Log($"Found {winningHands.Count} winning hands");
+  }
+
+  public void FindPongs() {
+    List<List<Card>> sets = new List<List<Card>>();
+    if (_discard != null && _discard != Card.Unknown) {
+      sets = Hand.GetPongsAndKongs(_discard, _localHand, false);
     }
+    _handDisplay.OpenLockModal(sets, _discard);
+    Debug.Log($"Found {sets.Count} pongs/kongs");
+  }
+
+  public void FindRuns() {
+    List<List<Card>> sets = new List<List<Card>>();
+    if (_discard != null && _discard != Card.Unknown) {
+      sets = Hand.GetRuns(_discard, _localHand, false);
+    }
+    _handDisplay.OpenLockModal(sets, _discard);
+    Debug.Log($"Found {sets.Count} runs");
   }
 }

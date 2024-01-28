@@ -53,12 +53,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
 
-      // Start first turn
       PlayerManager.Singleton.StartTurn(_players[startIndex], null, null);
-
-      // // TEST CASE
-      // _currentCoroutine = SetRandomWinner();
-      // StartCoroutine(_currentCoroutine);
     }
   }
 
@@ -96,7 +91,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcMasterHandleDiscardConsidered(Player sender) {
-    PlayerManager.Singleton.ConsiderDiscard(sender, _lastDiscard);
+    PlayerManager.Singleton.ConsiderDiscard(sender, _players[_turnIndex] == sender, _lastDiscard);
   }
 
   public void LockCards(List<Card> set, Card discard) {
@@ -106,16 +101,22 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcMasterHandleCardsLocked(Player sender, List<Card> set, Card discard) {
     PlayerManager.Singleton.LockCards(sender, set, discard);
-    // If the set was a kong, send a card to replace the extra card in the set.
-    if (set.Count > 3) {
-      Card c = _deck.Draw();
-      while (c.Suit == Suit.Flower) {
-        PlayerManager.Singleton.RevealFlower(sender, c);
-        c = _deck.Draw();
+
+    // A winning hand would reveal 3n + 2 cards where n is the number of sets revealed.
+    if (set.Count % 3 == 2) {
+      EndRound(sender, _lastDiscarder, new List<Card>() {new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1)});
+    } else {
+      // If the set was a kong, send a card to replace the extra card in the set.
+      if (set.Count == 4) {
+        Card c = _deck.Draw();
+        while (c.Suit == Suit.Flower) {
+          PlayerManager.Singleton.RevealFlower(sender, c);
+          c = _deck.Draw();
+        }
+        PlayerManager.Singleton.SendCard(sender, c);
       }
-      PlayerManager.Singleton.SendCard(sender, c);
+      PlayerManager.Singleton.RequestDiscard(sender);
     }
-    PlayerManager.Singleton.RequestDiscard(sender);
   }
 
   public void CancelConsiderDiscard() {
@@ -150,28 +151,6 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     if (PhotonNetwork.IsMasterClient) {
       FanApprovalManager.Singleton.OnAllFansApproved += (fans) => { FinishRound(_winner, _loser, fans); };
     }
-  }
-
-  // For testing purposes. Sets winner to a random player, and the loser to a random other player
-  public IEnumerator SetRandomWinner() {
-    yield return new WaitForSeconds(5);
-
-    System.Random rand = new System.Random();
-    int winnerIndex = rand.Next(0, GameManager.Singleton.PlayerList.Count);
-    _winner = GameManager.Singleton.PlayerList[winnerIndex];
-
-    int loserIndex;
-    do {
-      loserIndex = rand.Next(0, GameManager.Singleton.PlayerList.Count);
-    } while (loserIndex == winnerIndex);
-    _loser = GameManager.Singleton.PlayerList[loserIndex];
-
-    List<CardUtilities.Card> hand = new List<CardUtilities.Card>();
-    for (int i = 0; i < 13; i++) {
-      hand.Add(_deck.Draw());
-    }
-
-    EndRound(_winner, _loser, hand);
   }
 
   private void EndRound(Player winner, Player loser, List<CardUtilities.Card> hand) {

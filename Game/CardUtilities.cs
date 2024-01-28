@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace CardUtilities {
@@ -39,6 +40,7 @@ namespace CardUtilities {
           return 6;
       }
     }
+
     public static Suit IntToSuit(int suitId) {
       switch (suitId) {
         default:
@@ -135,6 +137,170 @@ namespace CardUtilities {
           GameObject.Destroy(child.gameObject);
         }
       }
+    }
+  }
+
+  public static class Hand {
+
+    /// <summary>
+    /// Retuns the number of duplicates of this card that this hand contains.
+    /// </summary>
+    public static int CountCard(Card targetCard, List<Card> hand) {
+      int duplicateCount = 0;
+      if (targetCard != null) {
+        foreach (Card c in hand) {
+          if (c == targetCard) {
+            duplicateCount++;
+          }
+        }
+      }
+      return duplicateCount;
+    }
+
+    /// <summary>
+    /// Returns a list of all pongs and kongs this hand can take containing the target card.
+    /// </summary>
+    public static List<List<Card>> GetPongsAndKongs(Card targetCard, List<Card> hand, bool requireTargetCard) {
+      List<List<Card>> usableSets = new List<List<Card>>();
+      if (targetCard != null) {
+        int duplicateCount = CountCard(targetCard, hand);
+        if (duplicateCount >= (requireTargetCard ? 3 : 2)) {
+          List<Card> pong = new List<Card>();
+          pong.Add(new Card(targetCard.ID));
+          pong.Add(new Card(targetCard.ID));
+          pong.Add(new Card(targetCard.ID));
+          usableSets.Add(pong);
+          if (duplicateCount >= (requireTargetCard ? 4 : 3)) {
+            List<Card> kong = new List<Card>(pong);
+            kong.Add(new Card(targetCard.ID));
+            usableSets.Add(kong);
+          }
+        }
+      }
+      return usableSets;
+    }
+
+    /// <summary>
+    /// Returns a list of all runs this hand can take containing the target card.
+    /// </summary>
+    public static List<List<Card>> GetRuns(Card targetCard, List<Card> hand, bool requireTargetCard) {
+      List<List<Card>> usableSets = new List<List<Card>>();
+      if (targetCard != null && (!requireTargetCard || hand.Contains(targetCard))) {
+        if (!(targetCard.Suit == Suit.Circle || targetCard.Suit == Suit.Man || targetCard.Suit == Suit.Stick)) {
+          return usableSets;
+        }
+        // Check for set {n-2, n-1, n}
+        if (targetCard.Value >= 3) {
+          Card c1 = new Card(targetCard.Suit, targetCard.Value - 2, 0);
+          Card c2 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
+          if (hand.Contains(c1) && hand.Contains(c2)) {
+            List<Card> set = new List<Card>();
+            set.Add(c1);
+            set.Add(c2);
+            set.Add(targetCard);
+            usableSets.Add(set);
+          }
+        }
+        // Check for set {n-1, n, n+1}
+        if (targetCard.Value >= 2 && targetCard.Value <= 8) {
+          Card c1 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
+          Card c2 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
+          if (hand.Contains(c1) && hand.Contains(c2)) {
+            List<Card> set = new List<Card>();
+            set.Add(c1);
+            set.Add(targetCard);
+            set.Add(c2);
+            usableSets.Add(set);
+          }
+        }
+        // Check for set {n, n+1, n+2}
+        if (targetCard.Value <= 7) {
+          Card c1 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
+          Card c2 = new Card(targetCard.Suit, targetCard.Value + 2, 0);
+          if (hand.Contains(c1) && hand.Contains(c2)) {
+            List<Card> set = new List<Card>();
+            set.Add(targetCard);
+            set.Add(c1);
+            set.Add(c2);
+            usableSets.Add(set);
+          }
+        }
+      }
+      return usableSets;
+    }
+
+    /// <summary>
+    /// Returns a list of all ways to organize this hand into a valid winning hand using the target card. If there are no valid ways, returns an empty list.
+    /// </summary>
+    public static List<List<Card>> GetWinningHands(Card targetCard, List<Card> hand) {
+      // Create initial list of hands to return. It may return empty.
+      List<List<Card>> handsToReturn = new List<List<Card>>();
+
+      List<Card> fullHand = new List<Card>(hand);
+      if (targetCard != null && targetCard != Card.Unknown) {
+        fullHand.Add(targetCard);
+      }
+      fullHand.Sort();
+
+      // Check all possible hands where this card was the eye
+      Card prevEye = null;
+      foreach (Card eye in fullHand) {
+        if (eye == prevEye) {
+          continue;
+        }
+        List<Card> remainingCards = new List<Card>(fullHand);
+        for (int i = 0; i < 2; i++) {
+          if (!remainingCards.Remove(eye)) {
+            continue;
+          }
+        }
+        // Start recursive function on the remaining cards to get possible organizations
+        if (remainingCards.Count == 0) {
+          handsToReturn.Add(new List<Card>() { eye, eye });
+        } else {
+          foreach (List<Card> recursion in GetOrganizedHands(remainingCards)) {
+            List<Card> organizedHand = new List<Card>(recursion) {
+              eye,
+              eye
+            };
+            handsToReturn.Add(organizedHand);
+          }
+        }
+        prevEye = eye;
+      }
+      return handsToReturn;
+    }
+
+    /// <summary>
+    /// Recursive helper fuction that returns a list of all valid ways to organize the given cards into sets of 3. If there are no valid ways, returns an empty list.
+    /// </summary>
+    private static List<List<Card>> GetOrganizedHands(List<Card> hand) {
+      List<List<Card>> handsToReturn = new List<List<Card>>();
+
+      List<List<Card>> usableSets = Hand.GetPongsAndKongs(hand[0], hand, true);
+      usableSets.AddRange(GetRuns(hand[0], hand, true));
+
+      foreach (List<Card> set in usableSets) {
+        // Sets can only be made of 3 cards (ignore kongs)
+        if (set.Count != 3) {
+          continue;
+        }
+        List<Card> remainingCards = new List<Card>(hand);
+        foreach (Card c in set) {
+          remainingCards.Remove(c);
+        }
+        if (remainingCards.Count == 0) {
+          handsToReturn.Add(set);
+        } else {
+          foreach (List<Card> recursion in GetOrganizedHands(remainingCards)) {
+            List<Card> organizedHand = new List<Card>(recursion);
+            organizedHand.AddRange(set);
+            handsToReturn.Add(organizedHand);
+          }
+        }
+      }
+
+      return handsToReturn;
     }
   }
 
@@ -237,113 +403,6 @@ namespace CardUtilities {
         }
         return first;
       }
-    }
-  }
-
-  // Representation of a hand
-  public class Hand {
-    private List<Card> _cards;
-    
-    public Hand() {
-      Reset();
-    }
-
-    public void Reset() {
-      _cards = new List<Card>();
-    }
-
-    public void Add(Card card) {
-      _cards.Add(card);
-    }
-
-    public void Remove(Card card) {
-      if (_cards.Contains(card)) {
-        _cards.Remove(card);
-      }
-    }
-
-    public bool HasHiddenKong(Card targetCard) {
-      int duplicateCount = 0;
-      if (targetCard != null) {
-        foreach (Card c in _cards) {
-          if (c == targetCard) {
-            duplicateCount++;
-          }
-        }
-      }
-      return duplicateCount >= 4;
-    }
-
-    public List<List<Card>> GetPossiblePongsAndKongs(Card targetCard) {
-      List<List<Card>> usableSets = new List<List<Card>>();
-      if (targetCard != null) {
-        int duplicateCount = 0;
-        foreach (Card c in _cards) {
-          if (c == targetCard) {
-            duplicateCount++;
-          }
-        }
-        if (duplicateCount >= 2) {
-          List<Card> pong = new List<Card>();
-          pong.Add(new Card(targetCard.ID));
-          pong.Add(new Card(targetCard.ID));
-          pong.Add(new Card(targetCard.ID));
-          usableSets.Add(pong);
-          if (duplicateCount >= 3) {
-            List<Card> kong = new List<Card>(pong);
-            kong.Add(new Card(targetCard.ID));
-            usableSets.Add(kong);
-          }
-        }
-      }
-      return usableSets;
-    }
-
-    public List<List<Card>> GetAllPossibleSets(Card targetCard) {
-      // Check for pongs or kongs
-      List<List<Card>> usableSets = GetPossiblePongsAndKongs(targetCard);
-      if (targetCard != null) {
-        if (!(targetCard.Suit == Suit.Circle || targetCard.Suit == Suit.Man || targetCard.Suit == Suit.Stick)) {
-          return usableSets;
-        }
-        // Check for set {n-2, n-1, n}
-        if (targetCard.Value >= 3) {
-          Card c1 = new Card(targetCard.Suit, targetCard.Value - 2, 0);
-          Card c2 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
-          if (_cards.Contains(c1) && _cards.Contains(c2)) {
-            List<Card> set = new List<Card>();
-            set.Add(c1);
-            set.Add(c2);
-            set.Add(targetCard);
-            usableSets.Add(set);
-          }
-        }
-        // Check for set {n-1, n, n+1}
-        if (targetCard.Value >= 2 && targetCard.Value <= 8) {
-          Card c1 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
-          Card c2 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
-          if (_cards.Contains(c1) && _cards.Contains(c2)) {
-            List<Card> set = new List<Card>();
-            set.Add(c1);
-            set.Add(targetCard);
-            set.Add(c2);
-            usableSets.Add(set);
-          }
-        }
-        // Check for set {n, n+1, n+2}
-        if (targetCard.Value <= 7) {
-          Card c1 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
-          Card c2 = new Card(targetCard.Suit, targetCard.Value + 2, 0);
-          if (_cards.Contains(c1) && _cards.Contains(c2)) {
-            List<Card> set = new List<Card>();
-            set.Add(targetCard);
-            set.Add(c1);
-            set.Add(c2);
-            usableSets.Add(set);
-          }
-        }
-      }
-      return usableSets;
     }
   }
 }
