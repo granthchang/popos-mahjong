@@ -19,6 +19,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [SerializeField] private HandDisplay[] _handDisplays2p;
 
   private List<Card> _localHand;
+  private List<Card> _localLockedHand;
 
   public event Action<Player, Card, bool> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
@@ -49,6 +50,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   public void Reset() {
     _handDictionary = null;
     _localHand = null;
+    _localLockedHand = null;
     foreach (HandDisplay hd in _handDisplays4p) {
       hd.ActivatePanel(false);
       hd.Reset();
@@ -66,6 +68,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       pair.Value.SetPlayer(pair.Key);
     }
     _localHand = new List<Card>();
+    _localLockedHand = new List<Card>();
   }
 
   public void SetHandOwners(List<Player> players) {
@@ -105,7 +108,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   }
 
   public void SendCard(Player target, Card card) {
-    if (PhotonNetwork.IsMasterClient) {
+    //if (PhotonNetwork.IsMasterClient) {
       foreach (Player p in PhotonNetwork.PlayerList) {
         if (p == target) {
           photonView.RPC("RpcClientHandleCardReceived", p, target, card);
@@ -113,7 +116,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
           photonView.RPC("RpcClientHandleCardReceived", p, target, Card.Unknown);
         }
       }
-    }
+    //}
   }
 
   [PunRPC]
@@ -210,7 +213,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     if (target == PhotonNetwork.LocalPlayer) {
       _localHand.Remove(discard);
     }
-    _handDictionary[target].RemoveFromHand(discard);
+    _handDictionary[target].RemoveFromHiddenHand(discard);
     OnDiscard?.Invoke(discard);
   }
 
@@ -218,16 +221,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     OnSelectedCardChanged?.Invoke(card);
     _handDictionary[PhotonNetwork.LocalPlayer].CloseLockModal();
 
-    // Check for hidden kongs and winning hands. If there are any, open the lock modal.
+    // Check for winning hands, hidden kongs, or locked pongs involving this card that could be turned into a kong. If there are any, open the lock modal.
     List<List<Card>> usableSets = Hand.GetWinningHands(null, _localHand);
-    if (Hand.CountCard(card, _localHand) >= 4) {
+    if (Hand.CountCard(card, _localHand, false) >= 4 || Hand.CountCard(card, _localLockedHand, true) == 3) {
       List<Card> kong = new List<Card>() {
         new Card(card.ID),
         new Card(card.ID),
         new Card(card.ID),
         new Card(card.ID)
       };
-      List<List<Card>> kongs = new List<List<Card>>() { kong };
+      usableSets.Add(kong);
     }
     if (usableSets.Count > 0) {
       _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(usableSets, null);
@@ -262,16 +265,42 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleCardsLocked(Player target, List<Card> set, Card discard) {
     OnSelectedCardChanged?.Invoke(null);
-    _handDictionary[target].LockCards(set, discard);
-    if (target == PhotonNetwork.LocalPlayer) {
-      List<Card> cardsToRemove = new List<Card>(set);
-      if (discard != null) {
-        cardsToRemove.Remove(discard);
+
+    // What cards to we need to remove from the hidden and locked hands?
+    List<Card> hiddenCardsToRemove;
+    List<Card> lockedCardsToRemove;
+
+    if (discard == null) {
+      if (set.Count == 4 && Hand.CountCard(set[0], _localLockedHand, true) == 3) {
+        hiddenCardsToRemove = new List<Card>() { set[0] };
+        lockedCardsToRemove = new List<Card>(set);
+        lockedCardsToRemove.RemoveAt(0);
+      } else {
+        hiddenCardsToRemove = new List<Card>(set);
+        lockedCardsToRemove = new List<Card>();
       }
-      foreach(Card c in cardsToRemove) {
+    } else {
+      hiddenCardsToRemove = new List<Card>(set);
+      hiddenCardsToRemove.Remove(discard);
+      lockedCardsToRemove = new List<Card>();
+    }
+
+    // Update the local hand data.
+    if (target == PhotonNetwork.LocalPlayer) {
+      foreach (Card c in hiddenCardsToRemove) {
         _localHand.Remove(c);
       }
+      foreach (Card c in lockedCardsToRemove) {
+        _localLockedHand.Remove(c);
+      }
+      foreach (Card c in set) {
+        _localLockedHand.Add(c);
+      }
     }
+
+    // Update visually.
+    _handDictionary[target].LockCards(set, hiddenCardsToRemove, lockedCardsToRemove);
+
     if (discard != null) {
       OnDiscardUsed?.Invoke(discard);
     }

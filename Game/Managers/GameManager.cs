@@ -225,7 +225,6 @@ public class GameManager : MonoBehaviourPunCallbacks {
     OnGameFinished?.Invoke(finalPlacements);
     Debug.Log("--- GAME FINISHED ---");
     foreach (Player p in finalPlacements) {
-      Debug.Log($"{p.NickName}: {p.CustomProperties[Constants.ScoreKey]}");
     }
   }
 }

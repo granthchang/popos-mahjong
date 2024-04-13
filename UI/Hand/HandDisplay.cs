@@ -81,14 +81,28 @@ public class HandDisplay : ActivatablePanel {
     }
   }
 
-  public void RemoveFromHand(Card discard) {
+  public void RemoveFromHiddenHand(Card cardToRemove) {
     foreach (Transform child in _hiddenHand) {
       CardDisplay cd = child.GetComponent<CardDisplay>();
       if (cd != null) {
-        if ((_isLocalHand && cd.Card == discard) || (!_isLocalHand && cd.Card == Card.Unknown)) {
+        if ((_isLocalHand && cd.Card == cardToRemove) || (!_isLocalHand && cd.Card == Card.Unknown)) {
           if (cd = _selectedCardDisplay) {
             _selectedCardDisplay = null;
           }
+          GameObject.DestroyImmediate(child.gameObject);
+          return;
+        }
+      }
+    }
+  }
+
+  public void RemoveFromLockedHand(Card cardToRemove) {
+    foreach (Transform child in _lockedHand) {
+      CardDisplay cd = child.GetComponent<CardDisplay>();
+      if (cd != null) {
+        Debug.Log($"found a card!");
+        if (cd.Card == cardToRemove) {
+          Debug.Log($"oh its the right one! removing that card");
           GameObject.DestroyImmediate(child.gameObject);
           return;
         }
@@ -104,22 +118,25 @@ public class HandDisplay : ActivatablePanel {
     _lockModal.CloseLockModal();
   }
 
-  public void LockCards(List<Card> cardsToLock, Card cardFromDiscard) {
-    // Add cards to locked hand
+  public void LockCards(List<Card> cardsToLock, List<Card> hiddenCardsToRemove, List<Card> lockedCardsToRemove) {
+    Debug.Log($"HandDisplay.LockCards()");
+    // Remove cards from hidden hand
+    foreach (Card c in hiddenCardsToRemove) {
+      RemoveFromHiddenHand(c);
+    }
+    
+    // Remove cards from locked hand
+    foreach (Card c in lockedCardsToRemove) {
+      Debug.Log($"searching for {c.ToString()} to remove");
+      RemoveFromLockedHand(c);
+    }
+
+    // Add set to locked hand
     foreach (Card c in cardsToLock) {
       GameObject newCard = GameObject.Instantiate(_cardPrefab, _lockedHand);
       newCard.GetComponent<CardDisplay>().SetCard(c);
       newCard.transform.SetSiblingIndex(_nextLockIndex);
       _nextLockIndex++;
-    }
-
-    // Remove cards from hidden hand
-    List<Card> cardsToRemove = new List<Card>(cardsToLock);
-    if (cardFromDiscard != null) {
-      cardsToRemove.Remove(cardFromDiscard);
-    }
-    foreach (Card c in cardsToRemove) {
-      RemoveFromHand(c);
     }
 
     // Move lock modal to the end of the locked hand

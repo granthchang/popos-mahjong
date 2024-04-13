@@ -171,9 +171,6 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleRoundFinished(Player winner, Player loser, int fans) {
     Debug.Log("--- ROUND FINISHED ---");
-    Debug.Log($"Winner: {winner.NickName}");
-    Debug.Log($"Loser: {loser.NickName}");
-    Debug.Log($"Fans: {fans}");
     OnRoundFinished?.Invoke(winner, loser, fans);
   }
 }

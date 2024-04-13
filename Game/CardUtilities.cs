@@ -141,17 +141,20 @@ namespace CardUtilities {
   }
 
   public static class Hand {
-
     /// <summary>
     /// Retuns the number of duplicates of this card that this hand contains.
     /// </summary>
-    public static int CountCard(Card targetCard, List<Card> hand) {
+    public static int CountCard(Card targetCard, List<Card> hand, bool requireConsecutiveCards) {
       int duplicateCount = 0;
+      Card prevCard = null;
       if (targetCard != null) {
         foreach (Card c in hand) {
           if (c == targetCard) {
-            duplicateCount++;
+            if (!requireConsecutiveCards || duplicateCount == 0 || c == prevCard) {
+              duplicateCount++;
+            }
           }
+          prevCard = c;
         }
       }
       return duplicateCount;
@@ -163,7 +166,7 @@ namespace CardUtilities {
     public static List<List<Card>> GetPongsAndKongs(Card targetCard, List<Card> hand, bool requireTargetCard) {
       List<List<Card>> usableSets = new List<List<Card>>();
       if (targetCard != null) {
-        int duplicateCount = CountCard(targetCard, hand);
+        int duplicateCount = CountCard(targetCard, hand, false);
         if (duplicateCount >= (requireTargetCard ? 3 : 2)) {
           List<Card> pong = new List<Card>();
           pong.Add(new Card(targetCard.ID));

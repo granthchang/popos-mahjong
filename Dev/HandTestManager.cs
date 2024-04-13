@@ -53,7 +53,6 @@ public class HandTestManager : MonoBehaviour {
   public void CheckForGame() {    
     List<List<Card>> winningHands = Hand.GetWinningHands(_discard, _localHand);
     _handDisplay.OpenLockModal(winningHands, _discard);
-    Debug.Log($"Found {winningHands.Count} winning hands");
   }
 
   public void FindPongs() {
@@ -62,7 +61,6 @@ public class HandTestManager : MonoBehaviour {
       sets = Hand.GetPongsAndKongs(_discard, _localHand, false);
     }
     _handDisplay.OpenLockModal(sets, _discard);
-    Debug.Log($"Found {sets.Count} pongs/kongs");
   }
 
   public void FindRuns() {
@@ -71,6 +69,5 @@ public class HandTestManager : MonoBehaviour {
       sets = Hand.GetRuns(_discard, _localHand, false);
     }
     _handDisplay.OpenLockModal(sets, _discard);
-    Debug.Log($"Found {sets.Count} runs");
   }
 }
