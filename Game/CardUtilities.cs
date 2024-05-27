@@ -283,15 +283,6 @@ namespace CardUtilities {
       return false;
     }
 
-    // public bool ConvertPongToKong() {
-    //   if (Type == SetType.Pong) {
-    //     Type = SetType.Kong;
-    //     Cards.Add(new Card(StartingCard.ID));
-    //     return true;
-    //   }
-    //   return false;
-    // }
-
     public override string ToString() {
       return $"{Type},{StartingCard}";
     }
