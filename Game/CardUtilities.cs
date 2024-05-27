@@ -1,5 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.WindowsRuntime;
+using JetBrains.Annotations;
+using Photon.Realtime;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -22,7 +27,7 @@ namespace CardUtilities {
     public int Value { get; private set; }
     public int ID { get; private set; }
 
-    public static int SuitToInt(Suit suit) {
+    private static int SuitToInt(Suit suit) {
       switch (suit) {
         default:
           return 0;
@@ -41,7 +46,7 @@ namespace CardUtilities {
       }
     }
 
-    public static Suit IntToSuit(int suitId) {
+    private static Suit IntToSuit(int suitId) {
       switch (suitId) {
         default:
           return Suit.None;
@@ -133,177 +138,10 @@ namespace CardUtilities {
 
     public static void ClearCardsInTransform(Transform transform) {
       foreach (Transform child in transform) {
-        if (child.GetComponent<CardDisplay>() != null) {
+        if (child.GetComponent<CardDisplay>() != null || child.GetComponent<SetDisplay>() != null) {
           GameObject.Destroy(child.gameObject);
         }
       }
-    }
-  }
-
-  public static class Hand {
-    /// <summary>
-    /// Retuns the number of duplicates of this card that this hand contains.
-    /// </summary>
-    public static int CountCard(Card targetCard, List<Card> hand, bool requireConsecutiveCards) {
-      int duplicateCount = 0;
-      Card prevCard = null;
-      if (targetCard != null) {
-        foreach (Card c in hand) {
-          if (c == targetCard) {
-            if (!requireConsecutiveCards || duplicateCount == 0 || c == prevCard) {
-              duplicateCount++;
-            }
-          }
-          prevCard = c;
-        }
-      }
-      return duplicateCount;
-    }
-
-    /// <summary>
-    /// Returns a list of all pongs and kongs this hand can take containing the target card.
-    /// </summary>
-    public static List<List<Card>> GetPongsAndKongs(Card targetCard, List<Card> hand, bool requireTargetCard) {
-      List<List<Card>> usableSets = new List<List<Card>>();
-      if (targetCard != null) {
-        int duplicateCount = CountCard(targetCard, hand, false);
-        if (duplicateCount >= (requireTargetCard ? 3 : 2)) {
-          List<Card> pong = new List<Card>();
-          pong.Add(new Card(targetCard.ID));
-          pong.Add(new Card(targetCard.ID));
-          pong.Add(new Card(targetCard.ID));
-          usableSets.Add(pong);
-          if (duplicateCount >= (requireTargetCard ? 4 : 3)) {
-            List<Card> kong = new List<Card>(pong);
-            kong.Add(new Card(targetCard.ID));
-            usableSets.Add(kong);
-          }
-        }
-      }
-      return usableSets;
-    }
-
-    /// <summary>
-    /// Returns a list of all runs this hand can take containing the target card.
-    /// </summary>
-    public static List<List<Card>> GetRuns(Card targetCard, List<Card> hand, bool requireTargetCard) {
-      List<List<Card>> usableSets = new List<List<Card>>();
-      if (targetCard != null && (!requireTargetCard || hand.Contains(targetCard))) {
-        if (!(targetCard.Suit == Suit.Circle || targetCard.Suit == Suit.Man || targetCard.Suit == Suit.Stick)) {
-          return usableSets;
-        }
-        // Check for set {n-2, n-1, n}
-        if (targetCard.Value >= 3) {
-          Card c1 = new Card(targetCard.Suit, targetCard.Value - 2, 0);
-          Card c2 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
-          if (hand.Contains(c1) && hand.Contains(c2)) {
-            List<Card> set = new List<Card>();
-            set.Add(c1);
-            set.Add(c2);
-            set.Add(targetCard);
-            usableSets.Add(set);
-          }
-        }
-        // Check for set {n-1, n, n+1}
-        if (targetCard.Value >= 2 && targetCard.Value <= 8) {
-          Card c1 = new Card(targetCard.Suit, targetCard.Value - 1, 0);
-          Card c2 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
-          if (hand.Contains(c1) && hand.Contains(c2)) {
-            List<Card> set = new List<Card>();
-            set.Add(c1);
-            set.Add(targetCard);
-            set.Add(c2);
-            usableSets.Add(set);
-          }
-        }
-        // Check for set {n, n+1, n+2}
-        if (targetCard.Value <= 7) {
-          Card c1 = new Card(targetCard.Suit, targetCard.Value + 1, 0);
-          Card c2 = new Card(targetCard.Suit, targetCard.Value + 2, 0);
-          if (hand.Contains(c1) && hand.Contains(c2)) {
-            List<Card> set = new List<Card>();
-            set.Add(targetCard);
-            set.Add(c1);
-            set.Add(c2);
-            usableSets.Add(set);
-          }
-        }
-      }
-      return usableSets;
-    }
-
-    /// <summary>
-    /// Returns a list of all ways to organize this hand into a valid winning hand using the target card. If there are no valid ways, returns an empty list.
-    /// </summary>
-    public static List<List<Card>> GetWinningHands(Card targetCard, List<Card> hand) {
-      // Create initial list of hands to return. It may return empty.
-      List<List<Card>> handsToReturn = new List<List<Card>>();
-
-      List<Card> fullHand = new List<Card>(hand);
-      if (targetCard != null && targetCard != Card.Unknown) {
-        fullHand.Add(targetCard);
-      }
-      fullHand.Sort();
-
-      // Check all possible hands where this card was the eye
-      Card prevEye = null;
-      foreach (Card eye in fullHand) {
-        if (eye == prevEye) {
-          continue;
-        }
-        List<Card> remainingCards = new List<Card>(fullHand);
-        for (int i = 0; i < 2; i++) {
-          if (!remainingCards.Remove(eye)) {
-            continue;
-          }
-        }
-        // Start recursive function on the remaining cards to get possible organizations
-        if (remainingCards.Count == 0) {
-          handsToReturn.Add(new List<Card>() { eye, eye });
-        } else {
-          foreach (List<Card> recursion in GetOrganizedHands(remainingCards)) {
-            List<Card> organizedHand = new List<Card>(recursion) {
-              eye,
-              eye
-            };
-            handsToReturn.Add(organizedHand);
-          }
-        }
-        prevEye = eye;
-      }
-      return handsToReturn;
-    }
-
-    /// <summary>
-    /// Recursive helper fuction that returns a list of all valid ways to organize the given cards into sets of 3. If there are no valid ways, returns an empty list.
-    /// </summary>
-    private static List<List<Card>> GetOrganizedHands(List<Card> hand) {
-      List<List<Card>> handsToReturn = new List<List<Card>>();
-
-      List<List<Card>> usableSets = Hand.GetPongsAndKongs(hand[0], hand, true);
-      usableSets.AddRange(GetRuns(hand[0], hand, true));
-
-      foreach (List<Card> set in usableSets) {
-        // Sets can only be made of 3 cards (ignore kongs)
-        if (set.Count != 3) {
-          continue;
-        }
-        List<Card> remainingCards = new List<Card>(hand);
-        foreach (Card c in set) {
-          remainingCards.Remove(c);
-        }
-        if (remainingCards.Count == 0) {
-          handsToReturn.Add(set);
-        } else {
-          foreach (List<Card> recursion in GetOrganizedHands(remainingCards)) {
-            List<Card> organizedHand = new List<Card>(recursion);
-            organizedHand.AddRange(set);
-            handsToReturn.Add(organizedHand);
-          }
-        }
-      }
-
-      return handsToReturn;
     }
   }
 
@@ -406,6 +244,133 @@ namespace CardUtilities {
         }
         return first;
       }
+    }
+  }
+
+  public enum SetType {
+    Run = 0,
+    Pong = 1,
+    Kong = 2,
+    Eye = 3,
+  }
+
+  // Representation of a set of cards that can be locked together. This may be a run, pong, kong, or an eye.
+  public class Set {
+    public SetType Type { get; private set; }
+    public List<Card> Cards { get; private set; }
+    public Card StartingCard => Cards[0];
+
+    public Set(SetType type, Card startingCard) {
+      Type = type;
+      Cards = GetCardListFromStartingCard(startingCard, type);
+    }
+
+    public Set(int ID) {
+      Type = (SetType)(ID / 1000);
+      Cards = GetCardListFromStartingCard(new Card(ID % 1000), Type);
+    }
+
+    public int GetID() {
+      return (int)Type * 1000 + StartingCard.ID;
+    }
+
+    public bool Contains(Card targetCard) {
+      foreach (Card c in Cards) {
+        if (c == targetCard) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // public bool ConvertPongToKong() {
+    //   if (Type == SetType.Pong) {
+    //     Type = SetType.Kong;
+    //     Cards.Add(new Card(StartingCard.ID));
+    //     return true;
+    //   }
+    //   return false;
+    // }
+
+    public override string ToString() {
+      return $"{Type},{StartingCard}";
+    }
+
+    private static List<Card> GetCardListFromStartingCard(Card startingCard, SetType type) {
+      List<Card> cards = new List<Card>();
+      if (type == SetType.Run) {
+        cards.Add(startingCard);
+        cards.Add(new Card(startingCard.Suit, startingCard.Value + 1, 1));
+        cards.Add(new Card(startingCard.Suit, startingCard.Value + 2, 1));
+      }
+      else {
+        int cardCount = 0;
+        switch (type) {
+          case SetType.Eye:
+            cardCount = 2;
+            break;
+          case SetType.Pong:
+            cardCount = 3;
+            break;
+          case SetType.Kong:
+            cardCount = 4;
+            break;
+        }
+        for (int i = 0; i < cardCount; i++) {
+          cards.Add(startingCard);
+        }
+      }
+      return cards;
+    }
+  }
+
+  public class LockableWrapper {
+    public List<Set> Sets { get; private set; }
+    public Card Discard { get; private set; }
+
+    public LockableWrapper(List<Set> sets, Card discard) {
+      Sets = sets;
+      Discard = discard;
+    }
+
+    public LockableWrapper(Set set, Card discard) {
+      Sets = new List<Set>() { set };
+      Discard = discard;
+    }
+
+    public List<Card> GetCards() {
+      List<Card> cardsToReturn = new List<Card>();
+      foreach (Set set in Sets) {
+        foreach (Card card in set.Cards) {
+          cardsToReturn.Add(card);
+        }
+      }
+      return cardsToReturn;
+    }
+
+    /// <summary>
+    /// Wraps a single Set into a single LockableWrapper. Returns one LockableWrapper
+    /// </summary>
+    public static LockableWrapper WrapSet(Set set, Card discard) {
+      return new LockableWrapper(set, discard);
+    }
+
+    /// <summary>
+    /// Wraps multiple Sets into a single LockableWrapper. Returns one Lockable Wrapper
+    /// </summary>
+    public static LockableWrapper WrapSetsTogether(List<Set> sets, Card discard) {
+      return new LockableWrapper(sets, discard);
+    }
+
+    /// <summary>
+    /// Wraps multiple Sets into multiple LockableWrappers. Returns one LockableWrapper per Set.
+    /// </summary>
+    public static List<LockableWrapper> WrapSetsSeparate(List<Set> sets, Card discard) {
+      List<LockableWrapper> wrappersToReturn = new List<LockableWrapper>();
+      foreach (Set set in sets) {
+        wrappersToReturn.Add(WrapSet(set, discard));
+      }
+      return wrappersToReturn;
     }
   }
 }

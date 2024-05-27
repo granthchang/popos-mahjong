@@ -5,25 +5,23 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class LockOption : MonoBehaviour {
-  [SerializeField] private GameObject _cardPrefab;
-  public event Action<List<Card>> OnClick;
+  public event Action<LockableWrapper> OnClick;
+  [SerializeField] private GameObject _setPrefab;
   [SerializeField] private Button _optionButton;
-  private List<Card> _set;
+  private LockableWrapper _wrapper;
 
-  public void SetLockOption(List<Card> set) {
-    _set = set;
-    // Display cards
+  public void SetLockOption(LockableWrapper wrapper) {
+    _wrapper = wrapper;
     Card.ClearCardsInTransform(this.transform);
-    foreach (Card c in set) {
-      GameObject newCard = GameObject.Instantiate(_cardPrefab, this.transform);
-      newCard.GetComponent<CardDisplay>().SetCard(c);
-      newCard.GetComponent<CardDisplay>().SetButtonEnabled(false);
+    foreach (Set set in wrapper.Sets) {
+      GameObject newCard = GameObject.Instantiate(_setPrefab, this.transform);
+      newCard.GetComponent<SetDisplay>().SetSet(set);
     }
     _optionButton.onClick.RemoveAllListeners();
-    _optionButton.onClick.AddListener(HandleOptionClicked);
+    _optionButton.onClick.AddListener( () => OnClick.Invoke(_wrapper));
   }
 
-  private void HandleOptionClicked() {
-    OnClick.Invoke(_set);
+  public void SetButtonEnabled(bool enabled) {
+    _optionButton.interactable = enabled;
   }
 }

@@ -7,12 +7,10 @@ using UnityEngine;
 public class HandTestManager : MonoBehaviour {
   public static HandTestManager Singleton;
   private int _handSize = 0;
-
-  private List<Card> _localHand;
+  private PlayerHand _hand;
   private Card _discard;
-
-  [SerializeField] private HandDisplay _handDisplay;
   [SerializeField] private CardDisplay _discardDisplay;
+  [SerializeField] private HandDisplay _handDisplay;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -22,27 +20,20 @@ public class HandTestManager : MonoBehaviour {
   }
 
   private void Start() {
-    _localHand = new List<Card>();
-    _handDisplay.Reset();
+    _hand = new PlayerHand(null, _handDisplay);
     SetDiscard(Card.Unknown);
   }
 
   public void AddCardToHand(Card card) {
     if (card.Suit == Suit.Flower) {
-      _handDisplay.RevealFlower(card);
+      _hand.RevealFlower(card);
       return;
     }
-    if (_handSize < 14) {
-      _localHand.Add(card);
-      _handDisplay.AddCard(card);
-      _handSize++;
-    }
+    _hand.AddCardToHand(card);
   }
 
   public void ClearHand() {
-    _localHand = new List<Card>();
-    _handDisplay.Reset();
-    _handSize = 0;
+    _hand.Reset();
   }
 
   public void SetDiscard(Card card) {
@@ -51,23 +42,23 @@ public class HandTestManager : MonoBehaviour {
   }
 
   public void CheckForGame() {    
-    List<List<Card>> winningHands = Hand.GetWinningHands(_discard, _localHand);
-    _handDisplay.OpenLockModal(winningHands, _discard);
+    List<LockableWrapper> winningHands = _hand.GetLockableHands(_discard, false);
+    _hand.OpenLockModal(winningHands);
   }
 
   public void FindPongs() {
-    List<List<Card>> sets = new List<List<Card>>();
+    List<LockableWrapper> wrappers = new List<LockableWrapper>();
     if (_discard != null && _discard != Card.Unknown) {
-      sets = Hand.GetPongsAndKongs(_discard, _localHand, false);
+      wrappers = _hand.GetLockablePongsAndKongs(_discard);
     }
-    _handDisplay.OpenLockModal(sets, _discard);
+    _hand.OpenLockModal(wrappers);
   }
 
   public void FindRuns() {
-    List<List<Card>> sets = new List<List<Card>>();
+    List<LockableWrapper> sets = new List<LockableWrapper>();
     if (_discard != null && _discard != Card.Unknown) {
-      sets = Hand.GetRuns(_discard, _localHand, false);
+      sets = _hand.GetLockableRuns(_discard);
     }
-    _handDisplay.OpenLockModal(sets, _discard);
+    _hand.OpenLockModal(sets);
   }
 }

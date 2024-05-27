@@ -94,28 +94,30 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     PlayerManager.Singleton.ConsiderDiscard(sender, _players[_turnIndex] == sender, _lastDiscard);
   }
 
-  public void LockCards(List<Card> set, Card discard) {
-    photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, set, discard);
+  public void LockCards(LockableWrapper wrapper) {
+    photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, wrapper);
   }
 
   [PunRPC]
-  private void RpcMasterHandleCardsLocked(Player sender, List<Card> set, Card discard) {
-    PlayerManager.Singleton.LockCards(sender, set, discard);
+  private void RpcMasterHandleCardsLocked(Player sender, LockableWrapper wrapper) {
+    PlayerManager.Singleton.LockCards(sender, wrapper);
 
-    // A winning hand would reveal 3n + 2 cards where n is the number of sets revealed.
-    if (set.Count % 3 == 2) {
-      EndRound(sender, _lastDiscarder, new List<Card>() {new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1)});
-    } else {
-      // If the set was a kong, send a card to replace the extra card in the set.
-      if (set.Count == 4) {
-        Card c = _deck.Draw();
-        while (c.Suit == Suit.Flower) {
-          PlayerManager.Singleton.RevealFlower(sender, c);
-          c = _deck.Draw();
+    foreach(Set setToLock in wrapper.Sets) {
+      // If there's an eye in the locked set, it's a winning hand.
+      if (setToLock.Type == SetType.Eye) {
+        EndRound(sender, _lastDiscarder, new List<Card>() { new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1) });
+      } else {
+        // If the set was a kong, send a card to replace the extra card in the set.
+        if (setToLock.Type == SetType.Kong) {
+          Card c = _deck.Draw();
+          while (c.Suit == Suit.Flower) {
+            PlayerManager.Singleton.RevealFlower(sender, c);
+            c = _deck.Draw();
+          }
+          PlayerManager.Singleton.SendCard(sender, c);
         }
-        PlayerManager.Singleton.SendCard(sender, c);
+        PlayerManager.Singleton.RequestDiscard(sender);
       }
-      PlayerManager.Singleton.RequestDiscard(sender);
     }
   }
 

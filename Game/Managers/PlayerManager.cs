@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class PlayerManager : MonoBehaviourPunCallbacks {
   public static PlayerManager Singleton;
-  private Dictionary<Player, HandDisplay> _handDictionary;
+  private Dictionary<Player, PlayerHand> _handDictionary;
   [Header("Local Avatar")]
   [SerializeField] private PlayerListItem _localPlayerAvatar;
 
@@ -17,9 +17,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [SerializeField] private HandDisplay[] _handDisplays4p;
   [SerializeField] private HandDisplay[] _handDisplays3p;
   [SerializeField] private HandDisplay[] _handDisplays2p;
-
-  private List<Card> _localHand;
-  private List<Card> _localLockedHand;
 
   public event Action<Player, Card, bool> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
@@ -49,8 +46,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public void Reset() {
     _handDictionary = null;
-    _localHand = null;
-    _localLockedHand = null;
     foreach (HandDisplay hd in _handDisplays4p) {
       hd.ActivatePanel(false);
       hd.Reset();
@@ -63,12 +58,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleHandsCleared() {
-    foreach (KeyValuePair<Player, HandDisplay> pair in _handDictionary) {
+    foreach (KeyValuePair<Player, PlayerHand> pair in _handDictionary) {
       pair.Value.Reset();
-      pair.Value.SetPlayer(pair.Key);
     }
-    _localHand = new List<Card>();
-    _localLockedHand = new List<Card>();
   }
 
   public void SetHandOwners(List<Player> players) {
@@ -79,66 +71,58 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleHandOwnersSet(List<Player> players) {
-    HandDisplay[] hands;
+    HandDisplay[] handDisplays;
     switch (players.Count) {
       case 4:
-        hands = _handDisplays4p;
+        handDisplays = _handDisplays4p;
         break;
       case 3:
-        hands = _handDisplays3p;
+        handDisplays = _handDisplays3p;
         break;
       case 2:
-        hands = _handDisplays2p;
+        handDisplays = _handDisplays2p;
         break;
       default:
         Debug.LogError($"No current support for {players.Count} players.");
         return;
     }
-    _handDictionary = new Dictionary<Player, HandDisplay>();
+    _handDictionary = new Dictionary<Player, PlayerHand>();
     int localIndex = players.IndexOf(PhotonNetwork.LocalPlayer);
     for (int i = 0; i < players.Count; i++) {
-      Player p = players[(localIndex + i) % players.Count];
-      HandDisplay h = hands[i];
-      h.Reset();
-      _handDictionary.Add(p, h);
-      h.SetPlayer(p);
-      h.ActivatePanel(true);
+      Player player = players[(localIndex + i) % players.Count];
+      PlayerHand hand = new PlayerHand(player, handDisplays[i]);
+      if (i == 0) {
+        hand.OnSelectedCardChanged += HandleSelectedCardChanged;
+      }
+      _handDictionary.Add(player, hand);
     }
-    _handDictionary[PhotonNetwork.LocalPlayer].OnSelectedCardChanged += HandleSelectedCardChanged;
   }
 
   public void SendCard(Player target, Card card) {
-    //if (PhotonNetwork.IsMasterClient) {
-      foreach (Player p in PhotonNetwork.PlayerList) {
-        if (p == target) {
-          photonView.RPC("RpcClientHandleCardReceived", p, target, card);
-        } else {
-          photonView.RPC("RpcClientHandleCardReceived", p, target, Card.Unknown);
-        }
+    foreach (Player p in PhotonNetwork.PlayerList) {
+      if (p == target) {
+        photonView.RPC("RpcClientHandleCardReceived", p, target, card);
+      } else {
+        photonView.RPC("RpcClientHandleCardReceived", p, target, Card.Unknown);
       }
-    //}
+    }
   }
 
   [PunRPC]
   private void RpcClientHandleCardReceived(Player target, Card card) {
-    _handDictionary[target].AddCard(card);
-    if (target == PhotonNetwork.LocalPlayer) {
-      _localHand.Add(card);
-    }
+    _handDictionary[target].AddCardToHand(card);
   }
 
   public void SendCards(Player target, List<Card> cards) {
-    if (PhotonNetwork.IsMasterClient) {
-      List<Card> unknownCards = new List<Card>();
-      for (int i = 0; i < cards.Count; i++) {
-        unknownCards.Add(Card.Unknown);
-      }
-      foreach (Player p in PhotonNetwork.PlayerList) {
-        if (p == target) {
-          photonView.RPC("RpcClientHandleCardsReceived", p, target, cards);
-        } else {
-          photonView.RPC("RpcClientHandleCardsReceived", p, target, unknownCards);
-        }
+    List<Card> unknownCards = new List<Card>();
+    for (int i = 0; i < cards.Count; i++) {
+      unknownCards.Add(Card.Unknown);
+    }
+    foreach (Player p in PhotonNetwork.PlayerList) {
+      if (p == target) {
+        photonView.RPC("RpcClientHandleCardsReceived", p, target, cards);
+      } else {
+        photonView.RPC("RpcClientHandleCardsReceived", p, target, unknownCards);
       }
     }
   }
@@ -146,17 +130,12 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleCardsReceived(Player target, List<Card> cards) {
     foreach (Card c in cards) {
-      _handDictionary[target].AddCard(c);
-      if (target == PhotonNetwork.LocalPlayer) {
-        _localHand.Add(c);
-      }
+      _handDictionary[target].AddCardToHand(c);
     }
   }
 
   public void RevealFlower(Player revealer, Card card) {
-    if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleFlowerRevealed", RpcTarget.All, revealer, card);
-    }
+    photonView.RPC("RpcClientHandleFlowerRevealed", RpcTarget.All, revealer, card);
   }
 
   [PunRPC]
@@ -174,12 +153,12 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard, Player discarder) {
     bool canUseDiscard = false;
     if (discarder != PhotonNetwork.LocalPlayer) {
-      List<List<Card>> usableSets = Hand.GetWinningHands(lastDiscard, _localHand);
-      usableSets.AddRange(Hand.GetPongsAndKongs(lastDiscard, _localHand, false));
+      List<LockableWrapper> lockableWrappers = _handDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lastDiscard, false);
+      lockableWrappers.AddRange(_handDictionary[PhotonNetwork.LocalPlayer].GetLockablePongsAndKongs(lastDiscard));
       if (turnPlayer == PhotonNetwork.LocalPlayer) {
-        usableSets.AddRange(Hand.GetRuns(lastDiscard, _localHand, false));
+        lockableWrappers.AddRange(_handDictionary[PhotonNetwork.LocalPlayer].GetLockableRuns(lastDiscard));
       }
-      canUseDiscard = usableSets.Count > 0;
+      canUseDiscard = lockableWrappers.Count > 0;
     }
     OnTurnStarted?.Invoke(turnPlayer, lastDiscard, canUseDiscard);
   }
@@ -210,30 +189,22 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleDiscard(Player target, Card discard) {
-    if (target == PhotonNetwork.LocalPlayer) {
-      _localHand.Remove(discard);
-    }
-    _handDictionary[target].RemoveFromHiddenHand(discard);
+    _handDictionary[target].RemoveCardFromHand(discard);
     OnDiscard?.Invoke(discard);
   }
 
-  private void HandleSelectedCardChanged(Card card) {
-    OnSelectedCardChanged?.Invoke(card);
+  private void HandleSelectedCardChanged(Card selectedCard) {
+    OnSelectedCardChanged?.Invoke(selectedCard);
     _handDictionary[PhotonNetwork.LocalPlayer].CloseLockModal();
 
     // Check for winning hands, hidden kongs, or locked pongs involving this card that could be turned into a kong. If there are any, open the lock modal.
-    List<List<Card>> usableSets = Hand.GetWinningHands(null, _localHand);
-    if (Hand.CountCard(card, _localHand, false) >= 4 || Hand.CountCard(card, _localLockedHand, true) == 3) {
-      List<Card> kong = new List<Card>() {
-        new Card(card.ID),
-        new Card(card.ID),
-        new Card(card.ID),
-        new Card(card.ID)
-      };
-      usableSets.Add(kong);
+    List<LockableWrapper> lockableWrappers = _handDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(selectedCard, true);
+    LockableWrapper lockableKong = _handDictionary[PhotonNetwork.LocalPlayer].GetLockableHiddenKong(selectedCard);
+    if (lockableKong != null) {
+      lockableWrappers.Add(lockableKong);
     }
-    if (usableSets.Count > 0) {
-      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(usableSets, null);
+    if (lockableWrappers.Count > 0) {
+      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(lockableWrappers);
     } 
   }
 
@@ -246,63 +217,30 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleDiscardConsidered(Player target, bool isTargetsTurn, Card discard) {
     if (target == PhotonNetwork.LocalPlayer) {
-      List<List<Card>> usableSets = Hand.GetWinningHands(discard, _localHand);
-      usableSets.AddRange(Hand.GetPongsAndKongs(discard, _localHand, false));
+      List<LockableWrapper> lockableWrappers = _handDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(discard, false);
+      lockableWrappers.AddRange(_handDictionary[PhotonNetwork.LocalPlayer].GetLockablePongsAndKongs(discard));
       if (isTargetsTurn) {
-        usableSets.AddRange(Hand.GetRuns(discard, _localHand, false));
+        lockableWrappers.AddRange(_handDictionary[PhotonNetwork.LocalPlayer].GetLockableRuns(discard));
       }
-      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(usableSets, discard);
+      _handDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(lockableWrappers);
     }
     OnDiscardConsidered?.Invoke(target);
   }
 
-  public void LockCards(Player target, List<Card> set, Card discard) {
+  public void LockCards(Player target, LockableWrapper wrapper) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleCardsLocked", RpcTarget.All, target, set, discard);
+      photonView.RPC("RpcClientHandleCardsLocked", RpcTarget.All, target, wrapper);
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleCardsLocked(Player target, List<Card> set, Card discard) {
+  private void RpcClientHandleCardsLocked(Player target, LockableWrapper wrapper) {
     OnSelectedCardChanged?.Invoke(null);
 
-    // What cards to we need to remove from the hidden and locked hands?
-    List<Card> hiddenCardsToRemove;
-    List<Card> lockedCardsToRemove;
+    _handDictionary[target].LockCards(wrapper);
 
-    if (discard == null) {
-      if (set.Count == 4 && Hand.CountCard(set[0], _localLockedHand, true) == 3) {
-        hiddenCardsToRemove = new List<Card>() { set[0] };
-        lockedCardsToRemove = new List<Card>(set);
-        lockedCardsToRemove.RemoveAt(0);
-      } else {
-        hiddenCardsToRemove = new List<Card>(set);
-        lockedCardsToRemove = new List<Card>();
-      }
-    } else {
-      hiddenCardsToRemove = new List<Card>(set);
-      hiddenCardsToRemove.Remove(discard);
-      lockedCardsToRemove = new List<Card>();
-    }
-
-    // Update the local hand data.
-    if (target == PhotonNetwork.LocalPlayer) {
-      foreach (Card c in hiddenCardsToRemove) {
-        _localHand.Remove(c);
-      }
-      foreach (Card c in lockedCardsToRemove) {
-        _localLockedHand.Remove(c);
-      }
-      foreach (Card c in set) {
-        _localLockedHand.Add(c);
-      }
-    }
-
-    // Update visually.
-    _handDictionary[target].LockCards(set, hiddenCardsToRemove, lockedCardsToRemove);
-
-    if (discard != null) {
-      OnDiscardUsed?.Invoke(discard);
+    if (wrapper.Discard != null) {
+      OnDiscardUsed?.Invoke(wrapper.Discard);
     }
   }
 }

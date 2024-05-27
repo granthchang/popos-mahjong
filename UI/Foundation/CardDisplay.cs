@@ -3,12 +3,20 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+[ExecuteInEditMode]
 public class CardDisplay : MonoBehaviour {
   public Card Card { get; private set; }
   [SerializeField] private Image _tileHover;
   [SerializeField] private Image _tileBackground;
   [SerializeField] private Image _tileEngraving;
   [SerializeField] private Button _cardButton;
+
+  [SerializeField] private bool PreviewUnknownCard = false;
+
+  public void Awake() {
+    _tileEngraving.enabled = !PreviewUnknownCard;
+    _tileBackground.color = PreviewUnknownCard ? new Color(0, 0.4823529f, 0.2431373f) : Color.white;
+  }
 
   public void SetCard(CardUtilities.Card card) {
     Card = card;

@@ -8,26 +8,33 @@ public class LockModal : ActivatablePanel {
   public event Action OnLockModalClosed;
   private bool _isUsingDiscard = false;
 
-  public void OpenLockModal(List<List<Card>> sets, Card discard) {
+  public void OpenLockModal(List<LockableWrapper> wrappers) {
     Reset();
-    _isUsingDiscard = (discard != null);
-    foreach (List<Card> set in sets) {
-      GameObject newOption = GameObject.Instantiate(_lockOptionPrefab, this.transform);
-      LockOption lo = newOption.GetComponent<LockOption>();
-      lo.SetLockOption(set);
-      lo.OnClick += (s) => {
-        RoundManager.Singleton.LockCards(s, discard);
-        ActivatePanel(false);
-      };
+    if (wrappers.Count > 0) {
+      _isUsingDiscard = wrappers[0].Discard != null;
+      foreach (LockableWrapper wrapper in wrappers) {
+        GameObject newOption = GameObject.Instantiate(_lockOptionPrefab, this.transform);
+        LockOption lo = newOption.GetComponent<LockOption>();
+        lo.SetLockOption(wrapper);
+        lo.OnClick += (wrapperToLock) => {
+          if (RoundManager.Singleton != null) {
+            RoundManager.Singleton.LockCards(wrapperToLock);
+          }
+          ActivatePanel(false);
+        };
+        lo.SetButtonEnabled(true);
+      }
+      ActivatePanel(true);
     }
-    ActivatePanel(true);
   }
 
   public void CloseLockModal() {
     if (_isPanelActivated) {
       ActivatePanel(false);
       if (_isUsingDiscard) {
-        RoundManager.Singleton.CancelConsiderDiscard();
+        if (RoundManager.Singleton != null) {
+          RoundManager.Singleton.CancelConsiderDiscard();
+        }
       }
     }
   }

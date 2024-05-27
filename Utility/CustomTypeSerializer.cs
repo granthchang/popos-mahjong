@@ -12,6 +12,7 @@ public class CustomTypeSerializer : MonoBehaviour {
     PhotonPeer.RegisterType(typeof(List<Player>), 100, SerializePlayerList, DeserializePlayerList);
     PhotonPeer.RegisterType(typeof(CardUtilities.Card), 101, SerializeCard, DeserializeCard);
     PhotonPeer.RegisterType(typeof(List<CardUtilities.Card>), 102, SerializeCardList, DeserializeCardList);
+    PhotonPeer.RegisterType(typeof(LockableWrapper), 103, SerializeLockableWrapper, DeserializeLockableWrapper);
   }
 
   private static byte[] JoinBytes(byte[] leftBytes, byte[] rightBytes) {
@@ -99,5 +100,48 @@ public class CustomTypeSerializer : MonoBehaviour {
       list.Add(new Card(ID));
     }
     return list;
+  }
+
+  private static byte[] SerializeLockableWrapper(object customobject) {
+    LockableWrapper wrapper = (LockableWrapper)customobject;
+    byte[] allBytes = new byte[0];
+    // Serialize discard
+    byte[] discardBytes = BitConverter.GetBytes(wrapper.Discard != null ? wrapper.Discard.ID : 0);
+    if (BitConverter.IsLittleEndian) {
+      Array.Reverse(discardBytes);
+    }
+    allBytes = JoinBytes(allBytes, discardBytes);
+    // Serialize each set
+    foreach(Set set in wrapper.Sets) {
+      byte[] setBytes = BitConverter.GetBytes(set.GetID());
+      if (BitConverter.IsLittleEndian) {
+        Array.Reverse(setBytes);
+      }
+      allBytes = JoinBytes(allBytes, setBytes);
+    }
+    return allBytes;
+  }
+
+  private static object DeserializeLockableWrapper(byte[] bytes) {
+    Card discard = null;
+    List<Set> sets = new List<Set>();
+    for (int i = 0; i < bytes.Length / 4; i++) {
+      // Parse bytes
+      byte[] cardBytes = new byte[4];
+      System.Buffer.BlockCopy(bytes, i * 4, cardBytes, 0, 4);
+      if (BitConverter.IsLittleEndian) {
+        Array.Reverse(cardBytes);
+      }
+      int ID = BitConverter.ToInt32(cardBytes, 0);
+      // The first int will be the discard, the rest are sets.
+      if (i == 0) {
+        if (ID != 0) {
+          discard = new Card(ID);
+        }
+      } else {
+        sets.Add(new Set(ID));
+      }
+    }
+    return new LockableWrapper(sets, discard);
   }
 }
