@@ -14,14 +14,13 @@ public class RoundEndModal : ActivatablePanel {
 
   [Header("Hand Display")]
   [SerializeField] private Transform _handDisplayObj;
-  [SerializeField] private GameObject _cardPrefab;
+  [SerializeField] private GameObject _setPrefab;
 
   [Header("Fan Count")]
   [SerializeField] private TMP_InputField _inputField;
   [SerializeField] private Button _approveButton;
   [SerializeField] private Transform _approvalList;
   [SerializeField] private GameObject _approvalListItem;
-
 
   protected override void Awake() {
     base.Awake();
@@ -34,22 +33,18 @@ public class RoundEndModal : ActivatablePanel {
     FanApprovalManager.Singleton.OnApproveButtonInteractableChanged += HandleApproveButtonInteractableChanged;
   }
 
-  private void OpenModal(Player winner, Player loser, List<CardUtilities.Card> hand) {
+  private void OpenModal(Player winner, Player loser, List<Set> hand) {
     _winnerTextObj.text = _winnerText.Replace("{player}", winner.NickName);
     _loserTextObj.text = _loserText.Replace("{player}", loser.NickName);
     DisplayHand(hand);
     ActivatePanel(true);
   }
 
-  private void DisplayHand(List<CardUtilities.Card> hand) {
-    // Clear existing list items
-    foreach (Transform child in _handDisplayObj.transform) {
-      GameObject.Destroy(child.gameObject);
-    }
-    // Populate the hand display with cards from hand
-    foreach(CardUtilities.Card c in hand) {
-      GameObject newCard = GameObject.Instantiate(_cardPrefab, _handDisplayObj.transform);
-      newCard.GetComponent<CardDisplay>().SetCard(c);
+  private void DisplayHand(List<Set> hand) {
+    Card.ClearCardsInTransform(_handDisplayObj.transform);
+    foreach(Set s in hand) {
+      GameObject newSet = GameObject.Instantiate(_setPrefab, _handDisplayObj.transform);
+      newSet.GetComponent<SetDisplay>().SetSet(s);
     }
   }
 

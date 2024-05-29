@@ -5,11 +5,12 @@ using Photon.Realtime;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.VisualScripting;
 
 public class FanApprovalManager : MonoBehaviourPunCallbacks {
   public static FanApprovalManager Singleton;
 
-  public event Action<Player, Player, List<CardUtilities.Card>> OnFanApprovalsStarted;
+  public event Action<Player, Player, List<Set>> OnFanApprovalsStarted;
   public event Action OnFanApprovalsStopped;
   public event Action<int> OnAllFansApproved;
 
@@ -27,11 +28,11 @@ public class FanApprovalManager : MonoBehaviourPunCallbacks {
     Singleton = this;
   }
 
-  public void StartFanApprovals(Player winner, Player loser, List<CardUtilities.Card> hand) {
+  public void StartFanApprovals(Player winner, Player loser, List<Set> hand) {
     if (PhotonNetwork.IsMasterClient) {
       fans = 0;
       approvals = 0;
-      photonView.RPC("RpcClientHandleFanApprovalsStarted", RpcTarget.All, winner, loser, hand);
+      photonView.RPC("RpcClientHandleFanApprovalsStarted", RpcTarget.All, winner, loser, LockableWrapper.WrapSetsTogether(hand, null));
       photonView.RPC("RpcClientHandleUpdateFans", RpcTarget.All, fans);
       photonView.RPC("RpcClientHandleApproveButtonInteractableChanged", RpcTarget.All, true);
       photonView.RPC("RpcClientHandleApproveFans", RpcTarget.All, approvals);
@@ -45,8 +46,8 @@ public class FanApprovalManager : MonoBehaviourPunCallbacks {
   }
 
   [PunRPC]
-  private void RpcClientHandleFanApprovalsStarted(Player winner, Player loser, List<CardUtilities.Card> hand) {
-    OnFanApprovalsStarted?.Invoke(winner, loser, hand);
+  private void RpcClientHandleFanApprovalsStarted(Player winner, Player loser, LockableWrapper hand) {
+    OnFanApprovalsStarted?.Invoke(winner, loser, hand.Sets);
   }
 
   public void UpdateFans(int newFans) {

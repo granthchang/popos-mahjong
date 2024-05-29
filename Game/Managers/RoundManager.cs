@@ -105,19 +105,20 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     foreach(Set setToLock in wrapper.Sets) {
       // If there's an eye in the locked set, it's a winning hand.
       if (setToLock.Type == SetType.Eye) {
-        EndRound(sender, _lastDiscarder, new List<Card>() { new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1), new Card(Suit.Stick, 6, 1) });
-      } else {
-        // If the set was a kong, send a card to replace the extra card in the set.
-        if (setToLock.Type == SetType.Kong) {
-          Card c = _deck.Draw();
-          while (c.Suit == Suit.Flower) {
-            PlayerManager.Singleton.RevealFlower(sender, c);
-            c = _deck.Draw();
-          }
-          PlayerManager.Singleton.SendCard(sender, c);
-        }
-        PlayerManager.Singleton.RequestDiscard(sender);
+        EndRound(sender, wrapper.Discard == null ? null : _lastDiscarder, PlayerManager.Singleton.HandDictionary[sender].LockedSets);
+        return;
       }
+      // Otherwise, if the set was a kong, send a card to replace the extra card in the set.
+      if (setToLock.Type == SetType.Kong) {
+        Card c = _deck.Draw();
+        while (c.Suit == Suit.Flower) {
+          PlayerManager.Singleton.RevealFlower(sender, c);
+          c = _deck.Draw();
+        }
+        PlayerManager.Singleton.SendCard(sender, c);
+      }
+      // Request discard once we've sent any necessary cards.
+      PlayerManager.Singleton.RequestDiscard(sender);
     }
   }
 
@@ -155,7 +156,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     }
   }
 
-  private void EndRound(Player winner, Player loser, List<CardUtilities.Card> hand) {
+  private void EndRound(Player winner, Player loser, List<Set> hand) {
     _winner = winner;
     _loser = loser;
     FanApprovalManager.Singleton.StartFanApprovals(winner, loser, hand);
