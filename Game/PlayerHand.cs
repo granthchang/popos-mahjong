@@ -88,16 +88,14 @@ public class PlayerHand {
         }
       }
       // Otherwise, add this set to this hands locked sets and remove the used cards from the hidden hand.
-      else {
-        AddSetToHand(setToLock);
-        List<Card> cardsToRemove = new List<Card>(setToLock.Cards);
-        if (!HasRemovedDiscard && cardsToRemove.Contains(wrapper.Discard)) {
-          cardsToRemove.Remove(wrapper.Discard);
-          HasRemovedDiscard = true;
-        }
-        foreach (Card c in cardsToRemove) {
-          RemoveCardFromHand(c);
-        }
+      AddSetToHand(setToLock);
+      List<Card> cardsToRemove = new List<Card>(setToLock.Cards);
+      if (!HasRemovedDiscard && cardsToRemove.Contains(wrapper.Discard)) {
+        cardsToRemove.Remove(wrapper.Discard);
+        HasRemovedDiscard = true;
+      }
+      foreach (Card c in cardsToRemove) {
+        RemoveCardFromHand(c);
       }
     }
   }
