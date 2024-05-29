@@ -11,13 +11,14 @@ public class FlowerDisplay : ActivatablePanel {
   private int _flowerCount = 0;
 
   public void Reset() {
-    _flowerCount = 0;
-    foreach (Transform child in this.transform) {
-      GameObject.Destroy(child.gameObject);
-    }
     if (_flowerButtonCircle != null) {
       _flowerButtonCircle.color = StyleManager.StyleSettings.TileYellow;
     }
+    _flowerCount = 0;
+    if (_flowerButtonTextObj != null) {
+      _flowerButtonTextObj.text = _flowerCount.ToString();
+    }
+    Card.ClearCardsInTransform(this.transform);
   }
 
   public void AddFlower(Card card) {
