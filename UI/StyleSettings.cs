@@ -1,7 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using CardUtilities;
+using UnityEngine;
 
 [CreateAssetMenu(menuName = "Style Settings")]
 public class StyleSettings : ScriptableObject {

@@ -1,11 +1,8 @@
 using CardUtilities;
-using System.Collections;
 using Photon.Pun;
 using Photon.Realtime;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
-using Unity.VisualScripting;
 
 public class FanApprovalManager : MonoBehaviourPunCallbacks {
   public static FanApprovalManager Singleton;

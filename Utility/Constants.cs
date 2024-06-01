@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-
 public static class Constants {
   // Room custom properties
   public static readonly string RoomSizeKey = "RoomSize";

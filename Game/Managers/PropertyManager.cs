@@ -1,8 +1,8 @@
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Photon.Pun;
 using Photon.Realtime;
 using System;
 using System.Collections.Generic;
-using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public class PropertyManager : MonoBehaviourPunCallbacks {
   public static PropertyManager Singleton;

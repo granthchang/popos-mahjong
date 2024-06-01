@@ -1,7 +1,6 @@
+using Hashtable = ExitGames.Client.Photon.Hashtable;
 using Photon.Pun;
 using Photon.Realtime;
-
-using Hashtable = ExitGames.Client.Photon.Hashtable;
 
 public static class PlayerUtilities {
   public static void ClearPlayerProperties(Player player) {

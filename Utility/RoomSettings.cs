@@ -1,5 +1,5 @@
-using UnityEngine;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
+using UnityEngine;
 
 [CreateAssetMenu(menuName = "Room Settings")]
 public class RoomSettings : ScriptableObject {
@@ -21,8 +21,7 @@ public class RoomSettings : ScriptableObject {
     return hash;
   }
 
-  public RoomSettings() {
-  }
+  public RoomSettings() { }
 
   public void UpdateSettings(Hashtable propertiesThatChanged) {
     if (propertiesThatChanged.ContainsKey(Constants.RoomSizeKey)) {
