@@ -92,10 +92,10 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
   private void InitializePlayerProperties() {
     // Set player starting values
-    for (int i = 0; i < PlayerList.Count; i++) {
+    for (int i = 1; i <= PlayerList.Count; i++) {
       Hashtable hash = new Hashtable();
       hash.Add(Constants.ScoreKey, RoomSettings.StartingScore);
-      hash.Add(Constants.FlowerKey, i + 1);
+      hash.Add(Constants.FlowerKey, i);
       PlayerList[i].SetCustomProperties(hash);
     }
   }
@@ -148,54 +148,43 @@ public class GameManager : MonoBehaviourPunCallbacks {
       RoundManager.Singleton.StartRound(PlayerList, _currentBank, _currentWind);
     } else {
       PropertyManager.Singleton.UpdatePropertiesWithCallback(
-        () => { UpdatePlayerScores(winner, loser, fans); },
-        () => { HandlePlayerScoresUpdated(winner); }
+        () => { UpdatePlayerData(winner, loser, fans); },
+        () => { HandlePlayerDataUpdated(winner); }
       );
     }
   }
 
-  private void UpdatePlayerScores(Player winner, Player loser, int fans) {
+  private void UpdatePlayerData(Player winner, Player loser, int fans) {
     int cost = Constants.GetCostForFans(fans);
-    int totalDiff = 0;
+    int amountPaidToWinner = 0;
+    bool shouldAdvanceFlower = PlayerList[_currentBank] != winner;
     foreach (Player p in PlayerList) {
+      // Update scores, remembering the amount that was paid by the winner.
       if (p != winner) {
         if (loser == null || loser == p) {
-          totalDiff += PlayerUtilities.ChangePlayerScore(p, -(cost * 2));
+          amountPaidToWinner += PlayerUtilities.UpdatePlayerData(p, -(cost * 2), shouldAdvanceFlower);
         } else {
-          totalDiff += PlayerUtilities.ChangePlayerScore(p, -cost);
+          amountPaidToWinner += PlayerUtilities.UpdatePlayerData(p, -cost, shouldAdvanceFlower);
         }
       }
     }
-    PlayerUtilities.ChangePlayerScore(winner, totalDiff);
+    PlayerUtilities.UpdatePlayerData(winner, amountPaidToWinner, shouldAdvanceFlower);
   }
 
-  private void HandlePlayerScoresUpdated(Player winner) {
+  private void HandlePlayerDataUpdated(Player winner) {
     // Count broke players
     int brokePlayers = 0;
     foreach (Player p in PlayerList) {
       if ((int)p.CustomProperties[Constants.ScoreKey] == 0) {
         brokePlayers++;
       }
+      Debug.Log($"{p.NickName} - {p.CustomProperties[Constants.FlowerKey]}");
     }
     if (brokePlayers >= RoomSettings.MaxBrokePlayers) {
       FinishGame();
       return;
     }
-    // Update current bank if the winner wasn't the current bank
-    if (PlayerList[_currentBank] != winner) {
-      _currentBank = (_currentBank + 1) % PlayerList.Count;
-      if (_currentBank == 0) {
-        _currentWind++;
-        if (_currentWind > RoomSettings.MaxCycles) {
-          FinishGame();
-          return;
-        }
-        foreach (Player p in PlayerList) {
-          PlayerUtilities.AdvancePlayerFlower(p);
-        }
-        photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
-      }
-    }
+    photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
     RoundManager.Singleton.StartRound(new List<Player>(PlayerList), _currentBank, _currentWind);
   }
 

@@ -11,31 +11,31 @@ public static class PlayerUtilities {
     player.SetCustomProperties(customProps);
   }
 
-  public static int ChangePlayerScore(Player player, int difference) {
+  public static int UpdatePlayerData(Player player, int scoreDiff, bool shouldAdvanceFlower) {
+    // Update player score. If the player doesn't have enough to pay the full cost, only subtract that amount.
     int score = (int)player.CustomProperties[Constants.ScoreKey];
-    int amountTaken = 0;
-    // If the player doesn't have enough to pay the full cost
-    if (score < -difference) {
+    int amountTaken;
+    if (score < -scoreDiff) {
       amountTaken = score;
       score = 0;
     } else {
-      amountTaken = -difference;
-      score += difference;
+      amountTaken = -scoreDiff;
+      score += scoreDiff;
     }
     Hashtable hash = new Hashtable();
     hash.Add(Constants.ScoreKey, score);
+
+    // Update player's flower number
+    if (shouldAdvanceFlower) {
+      int flower = (int)player.CustomProperties[Constants.FlowerKey] - 1;
+      if (flower <= 0) {
+        flower = PhotonNetwork.CurrentRoom.PlayerCount;
+      }
+      hash.Add(Constants.FlowerKey, flower);
+    }
+
+    // Commit changes and return the amount taken from this player 
     player.SetCustomProperties(hash);
     return amountTaken;
   }
-
-  public static void AdvancePlayerFlower(Player player) {
-    int flower = (int)player.CustomProperties[Constants.FlowerKey];
-    flower--;
-    if (flower <= 0) {
-      flower = PhotonNetwork.CurrentRoom.PlayerCount;
-    }
-    Hashtable hash = new Hashtable();
-    hash.Add(Constants.FlowerKey, flower);
-    player.SetCustomProperties(hash);
-  }  
 }

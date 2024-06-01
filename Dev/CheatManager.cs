@@ -7,6 +7,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 public class CheatManager : MonoBehaviour {
+  [SerializeField] private bool _1ForcesLocalPlayerWin = false;
   [SerializeField] private bool _2AddsPongToHand = false;
   [SerializeField] private bool _3AddsOneCircleToHand = false;
 
@@ -24,6 +25,12 @@ public class CheatManager : MonoBehaviour {
   }
 
   void Update() {
+    // Pressing 1 will make player 1 win the hand
+    if (Input.GetKeyDown(KeyCode.Alpha2) && _1ForcesLocalPlayerWin) {
+      Debug.Log("cheat 1: forcing win for the local player");
+      RoundManager.Singleton.FinishRound(PhotonNetwork.LocalPlayer, null, 3);
+      return;
+    }
     // Pressing 2 will add three of the card on top of the deck to your hand.
     if (Input.GetKeyDown(KeyCode.Alpha2) && _2AddsPongToHand) {
       Debug.Log("cheat 2: added 3 of a kind to local hand");
