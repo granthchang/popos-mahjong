@@ -23,7 +23,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   private Card _lastDiscard = null;
   private Player _lastDiscarder = null;
 
-  public void StartRound(List<Player> players, int startIndex, int wind) {
+  public void StartRound(List<Player> players, int startIndex) {
     if (PhotonNetwork.IsMasterClient) {
       _players = players;
       _turnIndex = startIndex;
@@ -33,8 +33,6 @@ public class RoundManager : MonoBehaviourPunCallbacks {
       _deck.Shuffle();
 
       Debug.Log("--- ROUND STARTED ---");
-      Debug.Log($"Starting player: {_players[startIndex].NickName}");
-      Debug.Log($"Starting wind: {Constants.IntToWind(wind)}");
 
       photonView.RPC("RpcClientHandleRoundStarted", RpcTarget.All);
 

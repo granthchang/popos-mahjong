@@ -24,7 +24,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
   // Game info
   public event Action<int> OnCurrentWindUpdated;
   private int _currentWind;
-  private int _currentBank;
+  private int _currentBankIndex;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -91,17 +91,17 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
   private void InitializePlayerProperties() {
     // Set player starting values
-    for (int i = 1; i <= PlayerList.Count; i++) {
+    for (int i = 0; i < PlayerList.Count; i++) {
       Hashtable hash = new Hashtable();
       hash.Add(Constants.ScoreKey, RoomSettings.StartingScore);
-      hash.Add(Constants.FlowerKey, i);
+      hash.Add(Constants.FlowerKey, i+1);
       PlayerList[i].SetCustomProperties(hash);
     }
   }
 
   private void HandlePlayerPropertiesInitialized() {
     _bHasGameFinished = false;
-    RoundManager.Singleton.StartRound(PlayerList, _currentBank, _currentWind);
+    RoundManager.Singleton.StartRound(PlayerList, _currentBankIndex);
   }
 
   // Separate from RpcClientHandleCurrentWindUpdated because this only needs to be called once at the very beginning of the game. It
@@ -113,7 +113,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
     // Continue setting up game now that we have the playerlist
     if (PhotonNetwork.IsMasterClient) {
       PlayerManager.Singleton.SetHandOwners(list);
-      _currentBank = 0;
+      _currentBankIndex = 0;
       _currentWind = 1;
       photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
       photonView.RPC("RpcClientHandleGameStarted", RpcTarget.All);
@@ -144,19 +144,19 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
   private void HandleRoundFinished(Player winner, Player loser, int fans) {
     if (winner == null) {
-      RoundManager.Singleton.StartRound(PlayerList, _currentBank, _currentWind);
+      RoundManager.Singleton.StartRound(PlayerList, _currentBankIndex);
     } else {
+      bool shouldAdvanceFlower = PlayerList[_currentBankIndex] != winner;
       PropertyManager.Singleton.UpdatePropertiesWithCallback(
-        () => { UpdatePlayerData(winner, loser, fans); },
-        () => { HandlePlayerDataUpdated(winner); }
+        () => { UpdatePlayerData(winner, loser, fans, shouldAdvanceFlower); },
+        () => { HandlePlayerDataUpdated(shouldAdvanceFlower); }
       );
     }
   }
 
-  private void UpdatePlayerData(Player winner, Player loser, int fans) {
+  private void UpdatePlayerData(Player winner, Player loser, int fans, bool shouldAdvanceFlower) {
     int cost = Constants.GetCostForFans(fans);
     int amountPaidToWinner = 0;
-    bool shouldAdvanceFlower = PlayerList[_currentBank] != winner;
     foreach (Player p in PlayerList) {
       // Update scores, remembering the amount that was paid by the winner.
       if (p != winner) {
@@ -170,7 +170,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
     PlayerUtilities.UpdatePlayerData(winner, amountPaidToWinner, shouldAdvanceFlower);
   }
 
-  private void HandlePlayerDataUpdated(Player winner) {
+  private void HandlePlayerDataUpdated(bool shouldAdvanceFlower) {
     // Count broke players
     int brokePlayers = 0;
     foreach (Player p in PlayerList) {
@@ -183,8 +183,20 @@ public class GameManager : MonoBehaviourPunCallbacks {
       FinishGame();
       return;
     }
-    photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
-    RoundManager.Singleton.StartRound(new List<Player>(PlayerList), _currentBank, _currentWind);
+    // Update wind and check for end of game
+    if (shouldAdvanceFlower) {
+      _currentBankIndex = (_currentBankIndex + 1) % PlayerList.Count;
+      if (_currentBankIndex == 0) {
+        _currentWind++;
+        if (_currentWind >= RoomSettings.MaxCycles) {
+          FinishGame();
+          return;
+        }
+        photonView.RPC("RpcClientHandleCurrentWindUpdated", RpcTarget.All, _currentWind);
+      }
+    }
+    // Start the next round
+    RoundManager.Singleton.StartRound(new List<Player>(PlayerList), _currentBankIndex);
   }
 
   private void FinishGame() {
