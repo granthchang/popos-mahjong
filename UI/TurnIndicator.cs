@@ -8,11 +8,12 @@ public class TurnIndicator : ActivatablePanel {
   [SerializeField] private string _isDrawingText = "{player} is drawing...";
   [SerializeField] private string _isDiscardingText = "{player} is discarding...";
   [SerializeField] private string _isDiscardConsideredText = "{player} is considering...";
+  [SerializeField] private string _deckExhaustedText = "Deck exhausted. Cannot draw.";
 
 
   protected override void Awake() {
     base.Awake();
-    
+
     RoundManager.Singleton.OnRoundStarted += () => { ActivatePanel(true); };
     RoundManager.Singleton.OnRoundFinished += (a, b, c) => { ActivatePanel(false); };
     RoundManager.Singleton.OnRoundStopped += () => { ActivatePanel(false); };
@@ -22,8 +23,8 @@ public class TurnIndicator : ActivatablePanel {
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
   }
 
-  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard) {
-    _indicatorText.text = _isDrawingText.Replace("{player}", target.NickName);
+  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard, bool canDraw) {
+    _indicatorText.text = canDraw ? _isDrawingText.Replace("{player}", target.NickName) : _deckExhaustedText;
   }
 
   private void HandleDiscardRequested(Player target) {

@@ -17,7 +17,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [SerializeField] private HandDisplay[] _handDisplays3p;
   [SerializeField] private HandDisplay[] _handDisplays2p;
 
-  public event Action<Player, Card, bool> OnTurnStarted;
+  public event Action<Player, Card, bool, bool> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
   public event Action<Card> OnSelectedCardChanged;
   public event Action<Card> OnDiscard;
@@ -144,14 +144,14 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     HandDictionary[revealer].RevealFlower(card);
   }
 
-  public void StartTurn(Player turnPlayer, Card lastDiscard, Player discarder) {
+  public void StartTurn(Player turnPlayer, Card lastDiscard, Player discarder, bool canDraw) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleTurnStarted", RpcTarget.All, turnPlayer, lastDiscard, discarder);
+      photonView.RPC("RpcClientHandleTurnStarted", RpcTarget.All, turnPlayer, lastDiscard, discarder, canDraw);
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard, Player discarder) {
+  private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard, Player discarder, bool canDraw) {
     bool canUseDiscard = false;
     if (discarder != PhotonNetwork.LocalPlayer) {
       List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lastDiscard, false);
@@ -161,7 +161,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       }
       canUseDiscard = lockableWrappers.Count > 0;
     }
-    OnTurnStarted?.Invoke(turnPlayer, lastDiscard, canUseDiscard);
+    OnTurnStarted?.Invoke(turnPlayer, lastDiscard, canUseDiscard, canDraw);
   }
 
   public void RequestDiscard(Player requestedPlayer) {

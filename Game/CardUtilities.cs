@@ -143,6 +143,7 @@ namespace CardUtilities {
   public class Deck {
     private LinkedList<Card> _cardList;
     public int Size { get; private set; }
+    public event Action<int> OnSizeChanged;
 
     public Deck() {
       _cardList = new LinkedList<Card>();
@@ -195,6 +196,7 @@ namespace CardUtilities {
             Size++;
           }
         }
+        OnSizeChanged?.Invoke(Size);
       }
     }
 
@@ -235,6 +237,7 @@ namespace CardUtilities {
           first = _cardList.First.Value;
           _cardList.RemoveFirst();
           Size--;
+          OnSizeChanged?.Invoke(Size);
         }
         return first;
       }

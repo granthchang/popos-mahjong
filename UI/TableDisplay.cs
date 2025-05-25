@@ -1,16 +1,18 @@
 using CardUtilities;
 using Photon.Pun;
 using Photon.Realtime;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class TableDisplay : ActivatablePanel {
   [SerializeField] private Button _deckDisplay;
+  [SerializeField] private TMP_Text _deckButtonTextObj;
+  [SerializeField] private SyncedButton _endRoundButton;
   private CardDisplay _lastDiscardDisplay;
   [SerializeField] private Transform _discardHistory;
   [SerializeField] private Button _discardButton;
   [SerializeField] private GameObject _cardPrefab;
-  // private Card _lastDiscard;
 
   protected override void Awake() {
     base.Awake();
@@ -19,6 +21,7 @@ public class TableDisplay : ActivatablePanel {
       ActivatePanel(true);
     };
     RoundManager.Singleton.OnRoundStopped += () => { ActivatePanel(false); };
+    RoundManager.Singleton.OnDeckSizeChanged += (newSize) => { _deckButtonTextObj.text = newSize.ToString(); };
     PlayerManager.Singleton.OnSelectedCardChanged += HandleCardSelected;
     PlayerManager.Singleton.OnDiscardRequested += HandleDiscardRequested;
     PlayerManager.Singleton.OnDiscard += HandleDiscard;
@@ -55,8 +58,10 @@ public class TableDisplay : ActivatablePanel {
     });
   }
 
-  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard) {
-    _deckDisplay.interactable = (target == PhotonNetwork.LocalPlayer);
+  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard, bool canDraw) {
+    _deckDisplay.interactable = (canDraw && target == PhotonNetwork.LocalPlayer);
+    _endRoundButton.gameObject.SetActive(!canDraw);
+    _endRoundButton.Reset();
     if (_lastDiscardDisplay != null) {
       _lastDiscardDisplay.SetButtonEnabled(canUseDiscard);
     }

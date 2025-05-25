@@ -177,7 +177,6 @@ public class GameManager : MonoBehaviourPunCallbacks {
       if ((int)p.CustomProperties[Constants.ScoreKey] == 0) {
         brokePlayers++;
       }
-      Debug.Log($"{p.NickName} - {p.CustomProperties[Constants.FlowerKey]}");
     }
     if (brokePlayers >= RoomSettings.MaxBrokePlayers) {
       FinishGame();

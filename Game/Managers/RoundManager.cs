@@ -20,6 +20,8 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   private Player _loser = null;
 
   public Deck _deck = null;
+  public event Action<int> OnDeckSizeChanged;
+  
   private Card _lastDiscard = null;
   private Player _lastDiscarder = null;
 
@@ -30,6 +32,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
       _winner = null;
       _loser = null;
       _deck = new Deck();
+      _deck.OnSizeChanged += HandleDeckSizeChanged;
       _deck.Shuffle();
 
       Debug.Log("--- ROUND STARTED ---");
@@ -51,7 +54,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
 
-      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null);
+      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null, true);
     }
   }
 
@@ -60,14 +63,33 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   }
 
   [PunRPC]
-  private void RpcMasterHandleDrawRequested(Player sender) {
+  private void RpcMasterHandleDrawRequested(Player requester) {
+    if (DrawCard(requester)) {
+      PlayerManager.Singleton.RequestDiscard(requester);
+    }
+    // If player can't draw successfully, start next turn with no discard to trigger the deck exhaustion behavior.
+    else {
+      _turnIndex = (_players.IndexOf(requester) + 1) % _players.Count;
+      PlayerManager.Singleton.StartTurn(_players[_turnIndex], null, null, false);
+    }
+  }
+
+  // Returns true if a playable card was sent to the target player.
+  // Returns false if the deck is has been exhausted and a playable card cannot be sent.
+  private bool DrawCard(Player target) {
+    if (_deck.Size == 0) {
+      return false;
+    }
     Card c = _deck.Draw();
     while (c.Suit == Suit.Flower) {
-      PlayerManager.Singleton.RevealFlower(sender, c);
+      PlayerManager.Singleton.RevealFlower(target, c);
+      if (_deck.Size == 0) {
+        return false;
+      }
       c = _deck.Draw();
     }
-    PlayerManager.Singleton.SendCard(sender, c);
-    PlayerManager.Singleton.RequestDiscard(sender);
+    PlayerManager.Singleton.SendCard(target, c);
+    return true;
   }
 
   public void Discard(Card discard) {
@@ -80,7 +102,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     _lastDiscard = discard;
     _lastDiscarder = sender;
     _turnIndex = (_players.IndexOf(sender) + 1) % _players.Count;
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender);
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender, _deck.Size > 0);
   }
 
   public void ConsiderDiscard() {
@@ -108,12 +130,9 @@ public class RoundManager : MonoBehaviourPunCallbacks {
       }
       // Otherwise, if the set was a kong, send a card to replace the extra card in the set.
       if (setToLock.Type == SetType.Kong) {
-        Card c = _deck.Draw();
-        while (c.Suit == Suit.Flower) {
-          PlayerManager.Singleton.RevealFlower(sender, c);
-          c = _deck.Draw();
+        if (!DrawCard(sender)) {
+          return;
         }
-        PlayerManager.Singleton.SendCard(sender, c);
       }
       // Request discard once we've sent any necessary cards.
       PlayerManager.Singleton.RequestDiscard(sender);
@@ -126,9 +145,8 @@ public class RoundManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcMasterHandleConsiderDiscardCancelled() {
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder);
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0);
   }
-
 
   public void StopRound() {
     if (_currentCoroutine != null) {
@@ -152,6 +170,24 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     if (PhotonNetwork.IsMasterClient) {
       FanApprovalManager.Singleton.OnAllFansApproved += (fans) => { FinishRound(_winner, _loser, fans); };
     }
+  }
+
+  public void HandleDeckSizeChanged(int newSize) {
+    photonView.RPC("RpcClientHandleDeckSizeChanged", RpcTarget.All, newSize);
+  }
+
+  [PunRPC]
+  private void RpcClientHandleDeckSizeChanged(int newSize) {
+    OnDeckSizeChanged?.Invoke(newSize);
+  }
+
+  public void EndRoundFromExhaustedDeck() {
+    photonView.RPC("RpcMasterHandleEndRoundFromExhaustedDeck", RpcTarget.MasterClient);
+  }
+
+  [PunRPC]
+  private void RpcMasterHandleEndRoundFromExhaustedDeck() {
+    EndRound(null, null, new List<Set>());
   }
 
   private void EndRound(Player winner, Player loser, List<Set> hand) {
