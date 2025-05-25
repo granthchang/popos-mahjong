@@ -24,6 +24,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   
   private Card _lastDiscard = null;
   private Player _lastDiscarder = null;
+  private bool _hasLockedSetThisTurn;
 
   public void StartRound(List<Player> players, int startIndex) {
     if (PhotonNetwork.IsMasterClient) {
@@ -53,7 +54,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
         }
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
-
+      _hasLockedSetThisTurn = false;
       PlayerManager.Singleton.StartTurn(_players[startIndex], null, null, true);
     }
   }
@@ -70,6 +71,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     // If player can't draw successfully, start next turn with no discard to trigger the deck exhaustion behavior.
     else {
       _turnIndex = (_players.IndexOf(requester) + 1) % _players.Count;
+      _hasLockedSetThisTurn = false;
       PlayerManager.Singleton.StartTurn(_players[_turnIndex], null, null, false);
     }
   }
@@ -102,6 +104,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     _lastDiscard = discard;
     _lastDiscarder = sender;
     _turnIndex = (_players.IndexOf(sender) + 1) % _players.Count;
+    _hasLockedSetThisTurn = false;
     PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender, _deck.Size > 0);
   }
 
@@ -121,11 +124,12 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcMasterHandleCardsLocked(Player sender, LockableWrapper wrapper) {
     PlayerManager.Singleton.LockCards(sender, wrapper);
-
-    foreach(Set setToLock in wrapper.Sets) {
+    _hasLockedSetThisTurn = true;
+    
+    foreach (Set setToLock in wrapper.Sets) {
       // If there's an eye in the locked set, it's a winning hand.
       if (setToLock.Type == SetType.Eye) {
-        EndRound(sender, wrapper.Discard == null ? null : _lastDiscarder, PlayerManager.Singleton.HandDictionary[sender].LockedSets);
+        EndRound(sender, ((wrapper.Discard == null) && (!_hasLockedSetThisTurn)) ? null : _lastDiscarder, PlayerManager.Singleton.HandDictionary[sender].LockedSets);
         return;
       }
       // Otherwise, if the set was a kong, send a card to replace the extra card in the set.
