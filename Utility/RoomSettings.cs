@@ -7,7 +7,7 @@ public class RoomSettings : ScriptableObject {
   public int TimeToStart = 5;
   public int StartingScore = 2000;
   public int MinimumFans = 3;
-  public int MaxCycles = 4;
+  public int Cycles = 4;
   public int MaxBrokePlayers = 2;
 
   public Hashtable ToCustomProperties() {
@@ -16,7 +16,7 @@ public class RoomSettings : ScriptableObject {
     hash.Add(Constants.TimeToStartKey, TimeToStart);
     hash.Add(Constants.StartingScoreKey, StartingScore);
     hash.Add(Constants.MinimumFansKey, MinimumFans);
-    hash.Add(Constants.MaxCyclesKey, MaxCycles);
+    hash.Add(Constants.MaxCyclesKey, Cycles);
     hash.Add(Constants.MaxBrokePlayersKey, MaxBrokePlayers);
     return hash;
   }
@@ -37,7 +37,7 @@ public class RoomSettings : ScriptableObject {
       MinimumFans = (int)propertiesThatChanged[Constants.MinimumFansKey];
     }
     if (propertiesThatChanged.ContainsKey(Constants.MaxCyclesKey)) {
-      MaxCycles = (int)propertiesThatChanged[Constants.MaxCyclesKey];
+      Cycles = (int)propertiesThatChanged[Constants.MaxCyclesKey];
     }
     if (propertiesThatChanged.ContainsKey(Constants.MaxBrokePlayersKey)) {
       MaxBrokePlayers = (int)propertiesThatChanged[Constants.MaxBrokePlayersKey];

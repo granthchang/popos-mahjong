@@ -187,7 +187,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
       _currentBankIndex = (_currentBankIndex + 1) % PlayerList.Count;
       if (_currentBankIndex == 0) {
         _currentWind++;
-        if (_currentWind >= RoomSettings.MaxCycles) {
+        if (_currentWind > RoomSettings.Cycles) {
           FinishGame();
           return;
         }
