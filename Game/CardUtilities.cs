@@ -245,10 +245,11 @@ namespace CardUtilities {
   }
 
   public enum SetType {
-    Run = 0,
-    Pong = 1,
-    Kong = 2,
-    Eye = 3,
+    Run = 0, // three consecutive numbers of the same suit (e.g., 3-4-5 of sticks)
+    Pong = 1, // three identical cards (e.g., East-East-East)
+    Kong = 2, // four identical cards (e.g., 2-2-2-2 of circles)
+    Eye = 3, // two identical cards (e.g., Red-Red)
+    Other = 4 // abnormal hands that do not follow typical set organization (e.g., 13 Angels)
   }
 
   // Representation of a set of cards that can be locked together. This may be a run, pong, kong, or an eye.
@@ -265,6 +266,11 @@ namespace CardUtilities {
     public Set(int ID) {
       Type = (SetType)(ID / 1000);
       Cards = GetCardListFromStartingCard(new Card(ID % 1000), Type);
+    }
+
+    public Set(SetType type, List<Card> cards) {
+      Type = type;
+      Cards = new List<Card>(cards);
     }
 
     public int GetID() {
@@ -303,6 +309,9 @@ namespace CardUtilities {
           case SetType.Kong:
             cardCount = 4;
             break;
+          case SetType.Other:
+            Debug.LogError("Cannot create set of type Other from a starting card. Please use a full Card List.");
+            return null;
         }
         for (int i = 0; i < cardCount; i++) {
           cards.Add(startingCard);
