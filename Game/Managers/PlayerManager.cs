@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerManager : MonoBehaviourPunCallbacks {
@@ -228,6 +229,26 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     OnDiscardConsidered?.Invoke(target);
   }
 
+  public void ConsiderKong(Player sender, Player turnPlayer, Card kongCard) {
+    if (PhotonNetwork.IsMasterClient) {
+      photonView.RPC("RpcClientHandleKongConsidered", RpcTarget.All, sender, turnPlayer, kongCard);
+    }
+  }
+
+  [PunRPC]
+  private void RpcClientHandleKongConsidered(Player sender, Player turnPlayer, Card kongCard) {
+    // If this is the player considering, open the lock modal.
+    if (sender == PhotonNetwork.LocalPlayer) {
+      List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(kongCard, false);
+      HandDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(lockableWrappers);
+    }
+    // If this is the player who revealed the kong, disable their discard until sender has decided whether they'll use it.
+    else if (turnPlayer == PhotonNetwork.LocalPlayer) {
+      HandDictionary[turnPlayer].SetDiscardEnabled(false);
+    }
+    OnDiscardConsidered?.Invoke(sender);
+  }
+
   public void LockCards(Player target, LockableWrapper wrapper) {
     if (PhotonNetwork.IsMasterClient) {
       photonView.RPC("RpcClientHandleCardsLocked", RpcTarget.All, target, wrapper);
@@ -240,8 +261,19 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
     HandDictionary[target].LockCards(wrapper);
 
+    // If using the discard, fire event to remove it.
     if (wrapper.Discard != null) {
       OnDiscardUsed?.Invoke(wrapper.Discard);
+    }
+    // If not using the discard, check if this is a hidden kong. If so, check if the local player can use that card to win.
+    else {
+      if ((target != PhotonNetwork.LocalPlayer) && (wrapper.Sets.Count == 1) && (wrapper.Sets[0].Type == SetType.Kong)) {
+        Card lockedCard = wrapper.Sets[0].Cards[0];
+        List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lockedCard, false);
+        if (lockableWrappers.Count > 0) {
+          HandDictionary[PhotonNetwork.LocalPlayer].SetLockedSetButtonEnabled(wrapper.Sets[0], true);
+        }
+      }
     }
   }
 }

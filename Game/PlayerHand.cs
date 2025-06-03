@@ -94,6 +94,10 @@ public class PlayerHand {
     }
   }
 
+  public void SetLockedSetButtonEnabled(Set targetSet, bool enabled) {
+    HandDisplay.SetLockedSetButtonEnabled(targetSet, enabled);
+  }
+
   public LockableWrapper GetLockableHiddenKong(Card targetCard) {
     if (targetCard != null) {
       // Find an existing pong of this card
@@ -104,11 +108,11 @@ public class PlayerHand {
         }
       }
       // Or find hidden kong of this card
-      if (pongExists || CountCard(HiddenHand, targetCard) == 4)  {
+      if (pongExists || CountCard(HiddenHand, targetCard) == 4) {
         Set kong = new Set(SetType.Kong, targetCard);
         return LockableWrapper.WrapSet(kong, null);
       }
-      
+
     }
     return null;
   }
@@ -137,6 +141,13 @@ public class PlayerHand {
     // Initialize list of hands to return. It may return empty.
     List<LockableWrapper> wrappersToReturn = new List<LockableWrapper>();
     Card discard = findHidden ? null : targetCard;
+
+    // If forcing a winnable hand, just generate runs from the current hand.
+    if (DevConsole.ForceCanAlwaysWinHand == 1) {
+      Set handSet = new Set(SetType.Other, fullHand);
+      wrappersToReturn.Add(LockableWrapper.WrapSet(handSet, discard));
+      return wrappersToReturn;
+    }
 
     // Check all possible hands where this card was the eye
     Card prevEye = null;

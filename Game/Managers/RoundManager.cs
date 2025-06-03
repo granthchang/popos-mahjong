@@ -4,6 +4,7 @@ using Photon.Realtime;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using UnityEngine;
 
 public class RoundManager : MonoBehaviourPunCallbacks {
@@ -117,6 +118,24 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     PlayerManager.Singleton.ConsiderDiscard(sender, _players[_turnIndex] == sender, _lastDiscard);
   }
 
+  public void ConsiderKong(Card kongCard) {
+    photonView.RPC("RpcMasterHandleKongConsidered", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, kongCard);
+  }
+
+  [PunRPC]
+  private void RpcMasterHandleKongConsidered(Player sender, Card kongCard) {
+    PlayerManager.Singleton.ConsiderKong(sender, _players[_turnIndex], kongCard);
+  }
+
+  public void CancelConsiderKong() {
+    photonView.RPC("RpcMasterHandleConsiderKongCancelled", RpcTarget.MasterClient);
+  }
+
+  [PunRPC]
+  private void RpcMasterHandleConsiderKongCancelled() {
+    //PlayerManager.Singleton.CancelConsiderKong();
+  }
+
   public void LockCards(LockableWrapper wrapper) {
     photonView.RPC("RpcMasterHandleCardsLocked", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer, wrapper);
   }
@@ -128,7 +147,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     
     foreach (Set setToLock in wrapper.Sets) {
       // If there's an eye in the locked set, it's a winning hand.
-      if (setToLock.Type == SetType.Eye) {
+      if (setToLock.Type == SetType.Eye || setToLock.Type == SetType.Other) {
         EndRound(sender, ((wrapper.Discard == null) && (!_hasLockedSetThisTurn)) ? null : _lastDiscarder, PlayerManager.Singleton.HandDictionary[sender].LockedSets);
         return;
       }

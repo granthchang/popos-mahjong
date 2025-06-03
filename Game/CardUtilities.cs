@@ -154,41 +154,41 @@ namespace CardUtilities {
       lock (_cardList) {
         Size = 0;
         _cardList.Clear();
-        // Add Flowers
-        for (int value = 1; value <= 4; value++) {
-          for (int copy = 1; copy <= 2; copy++) {
-            _cardList.AddLast(new Card(Suit.Flower, value, copy));
-            Size++;
-          }
-        }
-        // Add Dragons
-        for (int value = 1; value <= 3; value++) {
-          for (int copy = 1; copy <= 4; copy++) {
-            _cardList.AddLast(new Card(Suit.Dragon, value, copy));
-            Size++;
-          }
-        }
-        // Add Winds
-        for (int value = 1; value <= 4; value++) {
-          for (int copy = 1; copy <= 4; copy++) {
-            _cardList.AddLast(new Card(Suit.Wind, value, copy));
-            Size++;
-          }
-        }
-        // Add Circles
-        for (int value = 1; value <= 9; value++) {
-          for (int copy = 1; copy <= 4; copy++) {
-            _cardList.AddLast(new Card(Suit.Circle, value, copy));
-            Size++;
-          }
-        }
-        // Add Man
-        for (int value = 1; value <= 9; value++) {
-          for (int copy = 1; copy <= 4; copy++) {
-            _cardList.AddLast(new Card(Suit.Man, value, copy));
-            Size++;
-          }
-        }
+        // // Add Flowers
+        // for (int value = 1; value <= 4; value++) {
+        //   for (int copy = 1; copy <= 2; copy++) {
+        //     _cardList.AddLast(new Card(Suit.Flower, value, copy));
+        //     Size++;
+        //   }
+        // }
+        // // Add Dragons
+        // for (int value = 1; value <= 3; value++) {
+        //   for (int copy = 1; copy <= 4; copy++) {
+        //     _cardList.AddLast(new Card(Suit.Dragon, value, copy));
+        //     Size++;
+        //   }
+        // }
+        // // Add Winds
+        // for (int value = 1; value <= 4; value++) {
+        //   for (int copy = 1; copy <= 4; copy++) {
+        //     _cardList.AddLast(new Card(Suit.Wind, value, copy));
+        //     Size++;
+        //   }
+        // }
+        // // Add Circles
+        // for (int value = 1; value <= 9; value++) {
+        //   for (int copy = 1; copy <= 4; copy++) {
+        //     _cardList.AddLast(new Card(Suit.Circle, value, copy));
+        //     Size++;
+        //   }
+        // }
+        // // Add Man
+        // for (int value = 1; value <= 9; value++) {
+        //   for (int copy = 1; copy <= 4; copy++) {
+        //     _cardList.AddLast(new Card(Suit.Man, value, copy));
+        //     Size++;
+        //   }
+        // }
         // Add Sticks
         for (int value = 1; value <= 9; value++) {
           for (int copy = 1; copy <= 4; copy++) {

@@ -111,35 +111,65 @@ public class CustomTypeSerializer : MonoBehaviour {
     }
     allBytes = JoinBytes(allBytes, discardBytes);
     // Serialize each set
-    foreach(Set set in wrapper.Sets) {
-      byte[] setBytes = BitConverter.GetBytes(set.GetID());
+    foreach (Set set in wrapper.Sets) {
+      // Serialize set type
+      byte[] typeBytes = BitConverter.GetBytes((int)set.Type);
       if (BitConverter.IsLittleEndian) {
-        Array.Reverse(setBytes);
+        Array.Reverse(typeBytes);
       }
-      allBytes = JoinBytes(allBytes, setBytes);
+      // Serialize number of cards in set
+      byte[] countBytes = BitConverter.GetBytes(set.Cards.Count);
+      if (BitConverter.IsLittleEndian) {
+        Array.Reverse(countBytes);
+      }
+      // Add all bytes to the array
+      allBytes = JoinBytes(allBytes, typeBytes);
+      allBytes = JoinBytes(allBytes, countBytes);
+      allBytes = JoinBytes(allBytes, SerializeCardList(set.Cards));
     }
     return allBytes;
   }
 
   private static object DeserializeLockableWrapper(byte[] bytes) {
-    Card discard = null;
+    // Deserialize discard
+    byte[] discardBytes = new byte[4];
+    System.Buffer.BlockCopy(bytes, 0, discardBytes, 0, 4);
+    if (BitConverter.IsLittleEndian) {
+      Array.Reverse(discardBytes);
+    }
+    int discardId = BitConverter.ToInt32(discardBytes, 0);
+    Card discard = new Card(discardId);
+
+    // Deserialize sets
     List<Set> sets = new List<Set>();
-    for (int i = 0; i < bytes.Length / 4; i++) {
-      // Parse bytes
-      byte[] cardBytes = new byte[4];
-      System.Buffer.BlockCopy(bytes, i * 4, cardBytes, 0, 4);
+    int i = 4;
+    while (i < bytes.Length) {
+      // Parse first 4 bytes to int for set type
+      byte[] typeBytes = new byte[4];
+      Buffer.BlockCopy(bytes, i, typeBytes, 0, 4);
       if (BitConverter.IsLittleEndian) {
-        Array.Reverse(cardBytes);
+        Array.Reverse(typeBytes);
       }
-      int ID = BitConverter.ToInt32(cardBytes, 0);
-      // The first int will be the discard, the rest are sets.
-      if (i == 0) {
-        if (ID != 0) {
-          discard = new Card(ID);
-        }
-      } else {
-        sets.Add(new Set(ID));
+      SetType type = (SetType)BitConverter.ToInt32(typeBytes, 0);
+
+      // Parse next 4 bytes for number of cards to parse
+      byte[] countBytes = new byte[4];
+      Buffer.BlockCopy(bytes, i + 4, countBytes, 0, 4);
+      if (BitConverter.IsLittleEndian) {
+        Array.Reverse(countBytes);
       }
+      int count = BitConverter.ToInt32(countBytes, 0);
+
+      // Parse next count*4 bytes to get the list of cards in the set 
+      byte[] cardBytes = new byte[count * 4];
+      Buffer.BlockCopy(bytes, i + 8, cardBytes, 0, count * 4);
+      List<Card> cardList = (List<Card>)DeserializeCardList(cardBytes);
+
+      // Add set to list
+      sets.Add(new Set(type, cardList));
+
+      // Increment index for next set
+      i += (8 + count * 4);
     }
     return new LockableWrapper(sets, discard);
   }

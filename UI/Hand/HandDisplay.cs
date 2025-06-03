@@ -94,6 +94,24 @@ public class HandDisplay : ActivatablePanel {
     }
   }
 
+  public void SetLockedSetButtonEnabled(Set targetSet, bool enabled) {
+    foreach (Transform child in _lockedHand) {
+      SetDisplay setDisplay = child.GetComponent<SetDisplay>();
+      if (setDisplay != null && setDisplay.Set.Type == targetSet.Type && setDisplay.Set.StartingCard == targetSet.StartingCard) {
+        // Enable the last card button within the set.
+        CardDisplay cardDisplay = child.GetChild(child.childCount - 1).GetComponent<CardDisplay>();
+        cardDisplay.RemoveAllOnClickListeners();
+        if (enabled) {
+          cardDisplay.AddOnClickListener(() => {
+            RoundManager.Singleton.ConsiderKong(cardDisplay.Card);
+          });
+        }
+        cardDisplay.SetButtonEnabled(enabled);
+        return;
+      }
+    }
+  }
+
   public void RemoveFromLockedHand(Card cardToRemove) {
     foreach (Transform child in _lockedHand) {
       CardDisplay cd = child.GetComponent<CardDisplay>();
