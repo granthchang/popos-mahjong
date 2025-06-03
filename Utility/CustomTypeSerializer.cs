@@ -9,27 +9,40 @@ using UnityEngine;
 public class CustomTypeSerializer : MonoBehaviour {
   void Start() {
     PhotonPeer.RegisterType(typeof(List<Player>), 100, SerializePlayerList, DeserializePlayerList);
-    PhotonPeer.RegisterType(typeof(CardUtilities.Card), 101, SerializeCard, DeserializeCard);
-    PhotonPeer.RegisterType(typeof(List<CardUtilities.Card>), 102, SerializeCardList, DeserializeCardList);
+    PhotonPeer.RegisterType(typeof(Card), 101, SerializeCard, DeserializeCard);
+    PhotonPeer.RegisterType(typeof(List<Card>), 102, SerializeCardList, DeserializeCardList);
     PhotonPeer.RegisterType(typeof(LockableWrapper), 103, SerializeLockableWrapper, DeserializeLockableWrapper);
   }
 
   private static byte[] JoinBytes(byte[] leftBytes, byte[] rightBytes) {
     byte[] rv = new byte[leftBytes.Length + rightBytes.Length];
-    System.Buffer.BlockCopy(leftBytes, 0, rv, 0, leftBytes.Length);
-    System.Buffer.BlockCopy(rightBytes, 0, rv, leftBytes.Length, rightBytes.Length);
+    Buffer.BlockCopy(leftBytes, 0, rv, 0, leftBytes.Length);
+    Buffer.BlockCopy(rightBytes, 0, rv, leftBytes.Length, rightBytes.Length);
     return rv;
+  }
+
+  private static byte[] ConvertIntToBytes(int n) {
+    byte[] intBytes = BitConverter.GetBytes(n);
+    if (BitConverter.IsLittleEndian) {
+      Array.Reverse(intBytes);
+    }
+    return intBytes;
+  }
+
+  private static int ConvertBytesToInt(byte[] bytes, int srcIndexToParse) {
+    byte[] byteBlock = new byte[4];
+    Buffer.BlockCopy(bytes, srcIndexToParse, byteBlock, 0, 4);
+    if (BitConverter.IsLittleEndian) {
+      Array.Reverse(byteBlock);
+    }
+    return BitConverter.ToInt32(byteBlock, 0);
   }
 
   private static byte[] SerializePlayerList(object customobject) {
     List<Player> list = (List<Player>)customobject;
     byte[] allBytes = new byte[0];
     foreach (Player p in list) {
-      byte[] playerBytes = BitConverter.GetBytes(p.ActorNumber);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(playerBytes);
-      }
-      allBytes = JoinBytes(allBytes, playerBytes);
+      allBytes = JoinBytes(allBytes, ConvertIntToBytes(p.ActorNumber));
     }
     return allBytes;
   }
@@ -37,14 +50,7 @@ public class CustomTypeSerializer : MonoBehaviour {
   private static object DeserializePlayerList(byte[] bytes) {
     List<Player> list = new List<Player>();
     for (int i = 0; i < bytes.Length / 4; i++) {
-      // Parse bytes
-      byte[] playerBytes = new byte[4];
-      System.Buffer.BlockCopy(bytes, i * 4, playerBytes, 0, 4);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(playerBytes);
-      }
-      int ID = BitConverter.ToInt32(playerBytes, 0);
-      // Find and add player
+      int ID = ConvertBytesToInt(bytes, i * 4);
       if (PhotonNetwork.CurrentRoom != null) {
         Player player = PhotonNetwork.CurrentRoom.GetPlayer(ID);
         list.Add(player);
@@ -54,48 +60,26 @@ public class CustomTypeSerializer : MonoBehaviour {
   }
 
   private static byte[] SerializeCard(object customobject) {
-    CardUtilities.Card card = (CardUtilities.Card)customobject;
-    byte[] bytes = BitConverter.GetBytes(card.ID);
-    if (BitConverter.IsLittleEndian) {
-      Array.Reverse(bytes);
-    }
-    return bytes;
+    return ConvertIntToBytes(((Card)customobject).ID);
   }
 
   private static object DeserializeCard(byte[] bytes) {
-    byte[] cardBytes = new byte[4];
-    System.Buffer.BlockCopy(bytes, 0, cardBytes, 0, 4);
-    if (BitConverter.IsLittleEndian) {
-      Array.Reverse(cardBytes);
-    }
-    int ID = BitConverter.ToInt32(cardBytes, 0);
-    return new CardUtilities.Card(ID);
+    return new Card(ConvertBytesToInt(bytes, 0));
   }
 
   private static byte[] SerializeCardList(object customobject) {
-    List<CardUtilities.Card> list = (List<CardUtilities.Card>)customobject;
+    List<Card> list = (List<Card>)customobject;
     byte[] allBytes = new byte[0];
-    foreach (CardUtilities.Card c in list) {
-      byte[] cardBytes = BitConverter.GetBytes(c.ID);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(cardBytes);
-      }
-      allBytes = JoinBytes(allBytes, cardBytes);
+    foreach (Card c in list) {
+      allBytes = JoinBytes(allBytes, ConvertIntToBytes(c.ID));
     }
     return allBytes;
   }
 
   private static object DeserializeCardList(byte[] bytes) {
-    List<CardUtilities.Card> list = new List<CardUtilities.Card>();
+    List<Card> list = new List<Card>();
     for (int i = 0; i < bytes.Length / 4; i++) {
-      // Parse bytes
-      byte[] cardBytes = new byte[4];
-      System.Buffer.BlockCopy(bytes, i * 4, cardBytes, 0, 4);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(cardBytes);
-      }
-      int ID = BitConverter.ToInt32(cardBytes, 0);
-      // Add new card to list
+      int ID = ConvertBytesToInt(bytes, i * 4);
       list.Add(new Card(ID));
     }
     return list;
@@ -103,28 +87,14 @@ public class CustomTypeSerializer : MonoBehaviour {
 
   private static byte[] SerializeLockableWrapper(object customobject) {
     LockableWrapper wrapper = (LockableWrapper)customobject;
-    byte[] allBytes = new byte[0];
+
     // Serialize discard
-    byte[] discardBytes = BitConverter.GetBytes(wrapper.Discard != null ? wrapper.Discard.ID : 0);
-    if (BitConverter.IsLittleEndian) {
-      Array.Reverse(discardBytes);
-    }
-    allBytes = JoinBytes(allBytes, discardBytes);
+    byte[] allBytes = ConvertIntToBytes(wrapper.Discard != null ? wrapper.Discard.ID : 0);
+
     // Serialize each set
     foreach (Set set in wrapper.Sets) {
-      // Serialize set type
-      byte[] typeBytes = BitConverter.GetBytes((int)set.Type);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(typeBytes);
-      }
-      // Serialize number of cards in set
-      byte[] countBytes = BitConverter.GetBytes(set.Cards.Count);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(countBytes);
-      }
-      // Add all bytes to the array
-      allBytes = JoinBytes(allBytes, typeBytes);
-      allBytes = JoinBytes(allBytes, countBytes);
+      allBytes = JoinBytes(allBytes, ConvertIntToBytes((int)set.Type));
+      allBytes = JoinBytes(allBytes, ConvertIntToBytes(set.Cards.Count));
       allBytes = JoinBytes(allBytes, SerializeCardList(set.Cards));
     }
     return allBytes;
@@ -132,12 +102,7 @@ public class CustomTypeSerializer : MonoBehaviour {
 
   private static object DeserializeLockableWrapper(byte[] bytes) {
     // Deserialize discard
-    byte[] discardBytes = new byte[4];
-    System.Buffer.BlockCopy(bytes, 0, discardBytes, 0, 4);
-    if (BitConverter.IsLittleEndian) {
-      Array.Reverse(discardBytes);
-    }
-    int discardId = BitConverter.ToInt32(discardBytes, 0);
+    int discardId = ConvertBytesToInt(bytes, 0);
     Card discard = new Card(discardId);
 
     // Deserialize sets
@@ -145,20 +110,10 @@ public class CustomTypeSerializer : MonoBehaviour {
     int i = 4;
     while (i < bytes.Length) {
       // Parse first 4 bytes to int for set type
-      byte[] typeBytes = new byte[4];
-      Buffer.BlockCopy(bytes, i, typeBytes, 0, 4);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(typeBytes);
-      }
-      SetType type = (SetType)BitConverter.ToInt32(typeBytes, 0);
+      SetType type = (SetType)ConvertBytesToInt(bytes, i);
 
       // Parse next 4 bytes for number of cards to parse
-      byte[] countBytes = new byte[4];
-      Buffer.BlockCopy(bytes, i + 4, countBytes, 0, 4);
-      if (BitConverter.IsLittleEndian) {
-        Array.Reverse(countBytes);
-      }
-      int count = BitConverter.ToInt32(countBytes, 0);
+      int count = ConvertBytesToInt(bytes, i + 4);
 
       // Parse next count*4 bytes to get the list of cards in the set 
       byte[] cardBytes = new byte[count * 4];
