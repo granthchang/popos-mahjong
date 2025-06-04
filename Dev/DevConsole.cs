@@ -6,6 +6,7 @@ public class DevConsole : MonoBehaviour {
 
   // Console variables
   [HideInInspector] public static int ForceCanAlwaysWinHand = 0;
+  [HideInInspector] public static int ForceDrawCard = -1;
 
   private void Update() {
     if (Input.GetKeyDown(KeyCode.BackQuote)) {

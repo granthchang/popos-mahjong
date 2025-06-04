@@ -112,7 +112,11 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleCardReceived(Player target, Card card) {
-    HandDictionary[target].AddCardToHand(card);
+    Card cardToAdd = card;
+    if (target == PhotonNetwork.LocalPlayer && DevConsole.ForceDrawCard >= 0) {
+      cardToAdd = new Card(DevConsole.ForceDrawCard);
+    }
+    HandDictionary[target].AddCardToHand(cardToAdd);
   }
 
   public void SendCards(Player target, List<Card> cards) {

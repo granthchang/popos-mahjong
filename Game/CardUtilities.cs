@@ -21,44 +21,6 @@ namespace CardUtilities {
     public int Value { get; private set; }
     public int ID { get; private set; }
 
-    private static int SuitToInt(Suit suit) {
-      switch (suit) {
-        default:
-          return 0;
-        case Suit.Flower:
-          return 1;
-        case Suit.Dragon:
-          return 2;
-        case Suit.Wind:
-          return 3;
-        case Suit.Circle:
-          return 4;
-        case Suit.Man:
-          return 5;
-        case Suit.Stick:
-          return 6;
-      }
-    }
-
-    private static Suit IntToSuit(int suitId) {
-      switch (suitId) {
-        default:
-          return Suit.None;
-        case 1:
-          return Suit.Flower;
-        case 2:
-          return Suit.Dragon;
-        case 3:
-          return Suit.Wind;
-        case 4:
-          return Suit.Circle;
-        case 5:
-          return Suit.Man;
-        case 6:
-          return Suit.Stick;
-      }
-    }
-
     public Card() {
       Suit = Suit.None;
       Value = 0;
@@ -68,13 +30,13 @@ namespace CardUtilities {
     public Card(Suit suit, int value, int copyIndex) {
       Suit = suit;
       Value = value;
-      ID += SuitToInt(suit) * 100;
+      ID += (int)suit * 100;
       ID += value * 10;
       ID += copyIndex;
     }
 
     public Card(int id) {
-      Suit = IntToSuit(id / 100);
+      Suit = (Suit)(id / 100);
       Value = (id % 100) / 10;
       ID = id;
     }
@@ -154,41 +116,41 @@ namespace CardUtilities {
       lock (_cardList) {
         Size = 0;
         _cardList.Clear();
-        // // Add Flowers
-        // for (int value = 1; value <= 4; value++) {
-        //   for (int copy = 1; copy <= 2; copy++) {
-        //     _cardList.AddLast(new Card(Suit.Flower, value, copy));
-        //     Size++;
-        //   }
-        // }
-        // // Add Dragons
-        // for (int value = 1; value <= 3; value++) {
-        //   for (int copy = 1; copy <= 4; copy++) {
-        //     _cardList.AddLast(new Card(Suit.Dragon, value, copy));
-        //     Size++;
-        //   }
-        // }
-        // // Add Winds
-        // for (int value = 1; value <= 4; value++) {
-        //   for (int copy = 1; copy <= 4; copy++) {
-        //     _cardList.AddLast(new Card(Suit.Wind, value, copy));
-        //     Size++;
-        //   }
-        // }
-        // // Add Circles
-        // for (int value = 1; value <= 9; value++) {
-        //   for (int copy = 1; copy <= 4; copy++) {
-        //     _cardList.AddLast(new Card(Suit.Circle, value, copy));
-        //     Size++;
-        //   }
-        // }
-        // // Add Man
-        // for (int value = 1; value <= 9; value++) {
-        //   for (int copy = 1; copy <= 4; copy++) {
-        //     _cardList.AddLast(new Card(Suit.Man, value, copy));
-        //     Size++;
-        //   }
-        // }
+        // Add Flowers
+        for (int value = 1; value <= 4; value++) {
+          for (int copy = 1; copy <= 2; copy++) {
+            _cardList.AddLast(new Card(Suit.Flower, value, copy));
+            Size++;
+          }
+        }
+        // Add Dragons
+        for (int value = 1; value <= 3; value++) {
+          for (int copy = 1; copy <= 4; copy++) {
+            _cardList.AddLast(new Card(Suit.Dragon, value, copy));
+            Size++;
+          }
+        }
+        // Add Winds
+        for (int value = 1; value <= 4; value++) {
+          for (int copy = 1; copy <= 4; copy++) {
+            _cardList.AddLast(new Card(Suit.Wind, value, copy));
+            Size++;
+          }
+        }
+        // Add Circles
+        for (int value = 1; value <= 9; value++) {
+          for (int copy = 1; copy <= 4; copy++) {
+            _cardList.AddLast(new Card(Suit.Circle, value, copy));
+            Size++;
+          }
+        }
+        // Add Man
+        for (int value = 1; value <= 9; value++) {
+          for (int copy = 1; copy <= 4; copy++) {
+            _cardList.AddLast(new Card(Suit.Man, value, copy));
+            Size++;
+          }
+        }
         // Add Sticks
         for (int value = 1; value <= 9; value++) {
           for (int copy = 1; copy <= 4; copy++) {
