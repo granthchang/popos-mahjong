@@ -73,4 +73,9 @@ public static class Constants {
       default: return 512;
     }
   }
+
+  // Console variables
+  public static int ForceCanAlwaysWinHand = 0;
+  public static int ForceDrawCard = -1;
+  public static int ForceAllStickDeck = 0;
 }

@@ -4,10 +4,6 @@ using UnityEngine;
 public class DevConsole : MonoBehaviour {
   [SerializeField] private GameObject _inputField;
 
-  // Console variables
-  [HideInInspector] public static int ForceCanAlwaysWinHand = 0;
-  [HideInInspector] public static int ForceDrawCard = -1;
-
   private void Update() {
     if (Input.GetKeyDown(KeyCode.BackQuote)) {
       _inputField.SetActive(!_inputField.activeSelf);
@@ -18,7 +14,7 @@ public class DevConsole : MonoBehaviour {
     Debug.Log($">{input}");
     string[] commandArgs = input.Split(" ");
     if (commandArgs.Length == 2) {
-      FieldInfo variable = this.GetType().GetField(commandArgs[0]);
+      FieldInfo variable = typeof(Constants).GetField(commandArgs[0]);
       if (variable != null) {
         variable.SetValue(this, int.Parse(commandArgs[1]));
         Debug.Log($"Setting \"{commandArgs[0]}\" to {commandArgs[1]}");

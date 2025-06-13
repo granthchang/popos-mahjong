@@ -143,7 +143,7 @@ public class PlayerHand {
     Card discard = findHidden ? null : targetCard;
 
     // If forcing a winnable hand, just generate runs from the current hand.
-    if (DevConsole.ForceCanAlwaysWinHand == 1) {
+    if (Constants.ForceCanAlwaysWinHand == 1) {
       Set handSet = new Set(SetType.Other, fullHand);
       wrappersToReturn.Add(LockableWrapper.WrapSet(handSet, discard));
       return wrappersToReturn;
