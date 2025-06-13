@@ -103,7 +103,7 @@ public class CustomTypeSerializer : MonoBehaviour {
   private static object DeserializeLockableWrapper(byte[] bytes) {
     // Deserialize discard
     int discardId = ConvertBytesToInt(bytes, 0);
-    Card discard = new Card(discardId);
+    Card discard = (discardId == 0) ? null : new Card(discardId);
 
     // Deserialize sets
     List<Set> sets = new List<Set>();
