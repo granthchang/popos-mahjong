@@ -197,6 +197,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   private void RpcClientHandleDiscard(Player target, Card discard) {
     HandDictionary[target].RemoveCardFromHand(discard);
     OnDiscard?.Invoke(discard);
+
+    // If there are any locked kongs that could have been used to win, disable them because a card has been discarded now.
+    foreach (KeyValuePair<Player, PlayerHand> pair in HandDictionary) {
+      if (pair.Key != PhotonNetwork.LocalPlayer) {
+        pair.Value.DisableAllLockedSetButtons();
+      }
+    }
   }
 
   private void HandleSelectedCardChanged(Card selectedCard) {
@@ -262,21 +269,18 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleCardsLocked(Player target, LockableWrapper wrapper) {
     OnSelectedCardChanged?.Invoke(null);
-
-    HandDictionary[target].LockCards(wrapper);
+    HandDictionary[target].LockCards(wrapper, out bool ConvertedPongToKong);
 
     // If using the discard, fire event to remove it.
     if (wrapper.Discard != null) {
       OnDiscardUsed?.Invoke(wrapper.Discard);
     }
-    // If not using the discard, check if this is a hidden kong. If so, check if the local player can use that card to win.
-    else {
-      if ((target != PhotonNetwork.LocalPlayer) && (wrapper.Sets.Count == 1) && (wrapper.Sets[0].Type == SetType.Kong)) {
-        Card lockedCard = wrapper.Sets[0].Cards[0];
-        List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lockedCard, false);
-        if (lockableWrappers.Count > 0) {
-          HandDictionary[PhotonNetwork.LocalPlayer].SetLockedSetButtonEnabled(wrapper.Sets[0], true);
-        }
+    // If not using the discard, check a pong was converted to a kong. If so, check if the local player can use that card to win.
+    else if (ConvertedPongToKong && (target != PhotonNetwork.LocalPlayer)) {
+      Card lockedCard = wrapper.Sets[0].Cards[0];
+      List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lockedCard, false);
+      if (lockableWrappers.Count > 0) {
+        HandDictionary[target].SetLockedSetButtonEnabled(wrapper.Sets[0], true);
       }
     }
   }

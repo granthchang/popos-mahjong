@@ -62,7 +62,8 @@ public class PlayerHand {
     HandDisplay.CloseLockModal();
   }
 
-  public void LockCards(LockableWrapper wrapper) {
+  public void LockCards(LockableWrapper wrapper, out bool ConvertedPongToKong) {
+    ConvertedPongToKong = false;
     bool HasRemovedDiscard = wrapper.Discard == null;
     foreach (Set setToLock in wrapper.Sets) {
       // If this set is a kong of a card that this hand already has a pong of, remove the existing pong and replace it with a matching kong. Then remove one copy of the starting card from hidden hand.
@@ -78,6 +79,7 @@ public class PlayerHand {
           RemoveSetFromHand(setToRemove);
           AddSetToHand(setToLock);
           RemoveCardFromHand(setToLock.StartingCard);
+          ConvertedPongToKong = true;
           break;
         }
       }
@@ -96,6 +98,10 @@ public class PlayerHand {
 
   public void SetLockedSetButtonEnabled(Set targetSet, bool enabled) {
     HandDisplay.SetLockedSetButtonEnabled(targetSet, enabled);
+  }
+
+  public void DisableAllLockedSetButtons() {
+    HandDisplay.DisableAllLockedSetButtons();
   }
 
   public LockableWrapper GetLockableHiddenKong(Card targetCard) {

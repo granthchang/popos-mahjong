@@ -98,17 +98,23 @@ public class HandDisplay : ActivatablePanel {
     foreach (Transform child in _lockedHand) {
       SetDisplay setDisplay = child.GetComponent<SetDisplay>();
       if (setDisplay != null && setDisplay.Set.Type == targetSet.Type && setDisplay.Set.StartingCard == targetSet.StartingCard) {
-        // Enable the last card button within the set.
-        CardDisplay cardDisplay = child.GetChild(child.childCount - 1).GetComponent<CardDisplay>();
-        cardDisplay.RemoveAllOnClickListeners();
+        setDisplay.RemoveAllOnClickListeners();
         if (enabled) {
-          cardDisplay.AddOnClickListener(() => {
-            RoundManager.Singleton.ConsiderKong(cardDisplay.Card);
+          setDisplay.AddOnClickListener(() => {
+            RoundManager.Singleton.ConsiderKong(setDisplay.Set.StartingCard);
           });
         }
-        cardDisplay.SetButtonEnabled(enabled);
+        setDisplay.SetButtonEnabled(enabled);
         return;
       }
+    }
+  }
+
+  public void DisableAllLockedSetButtons() {
+    foreach (Transform child in _lockedHand) {
+      SetDisplay setDisplay = child.GetComponent<SetDisplay>();
+      setDisplay.RemoveAllOnClickListeners();
+      setDisplay.SetButtonEnabled(false);
     }
   }
 
