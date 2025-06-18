@@ -100,10 +100,6 @@ public class PlayerHand {
     HandDisplay.SetLockedSetButtonEnabled(targetSet, enabled);
   }
 
-  public void DisableAllLockedSetButtons() {
-    HandDisplay.DisableAllLockedSetButtons();
-  }
-
   public LockableWrapper GetLockableHiddenKong(Card targetCard) {
     if (targetCard != null) {
       // Find an existing pong of this card

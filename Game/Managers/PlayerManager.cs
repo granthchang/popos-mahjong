@@ -27,6 +27,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public Dictionary<Player, PlayerHand> HandDictionary { get; private set; }
 
+  private Set _lastConvertedKong = null;
+
   private void Awake() {
     if (Singleton != null && Singleton != this) {
       this.gameObject.SetActive(false);
@@ -48,6 +50,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public void Reset() {
     HandDictionary = null;
+    _lastConvertedKong = null;
     foreach (HandDisplay hd in _handDisplays4p) {
       hd.ActivatePanel(false);
       hd.Reset();
@@ -178,8 +181,16 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcClientHandleDiscardRequested(Player requestedPlayer) {
     OnDiscardRequested?.Invoke(requestedPlayer);
+    // If discard is requested for local player, enable discard for the local hand
     if (requestedPlayer == PhotonNetwork.LocalPlayer) {
       HandDictionary[requestedPlayer].SetDiscardEnabled(true);
+    }
+    // Otherwise, if there is a converted kong, check if the local player can win off of it
+    else if (_lastConvertedKong != null) {
+      List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(_lastConvertedKong.StartingCard, false);
+      if (lockableWrappers.Count > 0) {
+        HandDictionary[requestedPlayer].SetLockedSetButtonEnabled(_lastConvertedKong, true);
+      }
     }
   }
 
@@ -199,10 +210,13 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     OnDiscard?.Invoke(discard);
 
     // If there are any locked kongs that could have been used to win, disable them because a card has been discarded now.
-    foreach (KeyValuePair<Player, PlayerHand> pair in HandDictionary) {
-      if (pair.Key != PhotonNetwork.LocalPlayer) {
-        pair.Value.DisableAllLockedSetButtons();
+    if (_lastConvertedKong != null) {
+      foreach (KeyValuePair<Player, PlayerHand> pair in HandDictionary) {
+        if (pair.Key != PhotonNetwork.LocalPlayer) {
+          pair.Value.SetLockedSetButtonEnabled(_lastConvertedKong, false);
+        }
       }
+      _lastConvertedKong = null;
     }
   }
 
@@ -280,6 +294,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       Card lockedCard = wrapper.Sets[0].Cards[0];
       List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lockedCard, false);
       if (lockableWrappers.Count > 0) {
+        _lastConvertedKong = wrapper.Sets[0];
         HandDictionary[target].SetLockedSetButtonEnabled(wrapper.Sets[0], true);
       }
     }

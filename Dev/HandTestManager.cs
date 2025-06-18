@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class HandTestManager : MonoBehaviour {
   public static HandTestManager Singleton;
-  private int _handSize = 0;
   private PlayerHand _hand;
   private Card _discard;
   [SerializeField] private CardDisplay _discardDisplay;

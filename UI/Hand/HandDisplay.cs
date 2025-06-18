@@ -15,7 +15,6 @@ public class HandDisplay : ActivatablePanel {
 
   [SerializeField] bool _isLocalHand = false;
 
-  public event Action<List<Card>> OnSetLocked;
   public event Action<Card> OnSelectedCardChanged;
   private CardDisplay _selectedCardDisplay;
 
@@ -101,20 +100,13 @@ public class HandDisplay : ActivatablePanel {
         setDisplay.RemoveAllOnClickListeners();
         if (enabled) {
           setDisplay.AddOnClickListener(() => {
+            setDisplay.SetButtonEnabled(false);
             RoundManager.Singleton.ConsiderKong(setDisplay.Set.StartingCard);
           });
         }
         setDisplay.SetButtonEnabled(enabled);
         return;
       }
-    }
-  }
-
-  public void DisableAllLockedSetButtons() {
-    foreach (Transform child in _lockedHand) {
-      SetDisplay setDisplay = child.GetComponent<SetDisplay>();
-      setDisplay.RemoveAllOnClickListeners();
-      setDisplay.SetButtonEnabled(false);
     }
   }
 

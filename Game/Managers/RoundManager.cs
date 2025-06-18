@@ -126,14 +126,18 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   private void RpcMasterHandleKongConsidered(Player sender, Card kongCard) {
     PlayerManager.Singleton.ConsiderKong(sender, _players[_turnIndex], kongCard);
   }
-
-  public void CancelConsiderKong() {
-    photonView.RPC("RpcMasterHandleConsiderKongCancelled", RpcTarget.MasterClient);
+  
+  public void CancelConsider() {
+    photonView.RPC("RpcMasterHandleConsiderCancelled", RpcTarget.MasterClient);
   }
 
   [PunRPC]
-  private void RpcMasterHandleConsiderKongCancelled() {
-    //PlayerManager.Singleton.CancelConsiderKong();
+  private void RpcMasterHandleConsiderCancelled() {
+    if (_hasLockedSetThisTurn) {
+      PlayerManager.Singleton.RequestDiscard(_players[_turnIndex]);
+    } else {
+      PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0);
+    }
   }
 
   public void LockCards(LockableWrapper wrapper) {
@@ -143,8 +147,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
   [PunRPC]
   private void RpcMasterHandleCardsLocked(Player sender, LockableWrapper wrapper) {
     PlayerManager.Singleton.LockCards(sender, wrapper);
-    _hasLockedSetThisTurn = true;
-    
+
     foreach (Set setToLock in wrapper.Sets) {
       // If there's an eye in the locked set, it's a winning hand.
       if (setToLock.Type == SetType.Eye || setToLock.Type == SetType.Other) {
@@ -157,18 +160,9 @@ public class RoundManager : MonoBehaviourPunCallbacks {
           return;
         }
       }
-      // Request discard once we've sent any necessary cards.
-      PlayerManager.Singleton.RequestDiscard(sender);
     }
-  }
-
-  public void CancelConsiderDiscard() {
-    photonView.RPC("RpcMasterHandleConsiderDiscardCancelled", RpcTarget.MasterClient);
-  }
-
-  [PunRPC]
-  private void RpcMasterHandleConsiderDiscardCancelled() {
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0);
+    _hasLockedSetThisTurn = true;
+    PlayerManager.Singleton.RequestDiscard(sender);
   }
 
   public void StopRound() {

@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class LockModal : ActivatablePanel {
   [SerializeField] private GameObject _lockOptionPrefab;
-  public event Action OnLockModalClosed;
   private bool _isUsingDiscard = false;
 
   public void OpenLockModal(List<LockableWrapper> wrappers) {
@@ -33,7 +32,7 @@ public class LockModal : ActivatablePanel {
       ActivatePanel(false);
       if (_isUsingDiscard) {
         if (RoundManager.Singleton != null) {
-          RoundManager.Singleton.CancelConsiderDiscard();
+          RoundManager.Singleton.CancelConsider();
         }
       }
     }
