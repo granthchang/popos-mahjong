@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using CardUtilities;
+
 public static class Constants {
   // Room custom properties
   public static readonly string RoomSizeKey = "RoomSize";
@@ -78,4 +81,22 @@ public static class Constants {
   public static int ForceCanAlwaysWinHand = 0;
   public static int ForceDrawCard = -1;
   public static int ForceAllStickDeck = 0;
+  public static int ForceDealAngels = 0;
+
+  // Specific hands
+  public static List<Card> Angels = new List<Card>() {
+    new Card(Suit.Dragon, 1, 1),
+    new Card(Suit.Dragon, 2, 1),
+    new Card(Suit.Dragon, 3, 1),
+    new Card(Suit.Wind, 1, 1),
+    new Card(Suit.Wind, 2, 1),
+    new Card(Suit.Wind, 3, 1),
+    new Card(Suit.Wind, 4, 1),
+    new Card(Suit.Circle, 1, 1),
+    new Card(Suit.Circle, 9, 1),
+    new Card(Suit.Man, 1, 1),
+    new Card(Suit.Man, 9, 1),
+    new Card(Suit.Stick, 1, 1),
+    new Card(Suit.Stick, 9, 1)
+  };
 }

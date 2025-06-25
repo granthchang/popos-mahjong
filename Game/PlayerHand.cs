@@ -144,7 +144,7 @@ public class PlayerHand {
     List<LockableWrapper> wrappersToReturn = new List<LockableWrapper>();
     Card discard = findHidden ? null : targetCard;
 
-    // If forcing a winnable hand, just generate runs from the current hand.
+    // If forcing a winnable hand, just generate one set from the current hand.
     if (Constants.ForceCanAlwaysWinHand == 1) {
       Set handSet = new Set(SetType.Other, fullHand);
       wrappersToReturn.Add(LockableWrapper.WrapSet(handSet, discard));
@@ -177,6 +177,38 @@ public class PlayerHand {
       }
       prevEye = eye;
     }
+
+    // If nothing was found, check for abnormal hands
+    if (wrappersToReturn.Count == 0) {
+      // 13 angels
+      bool foundEye = false;
+      bool is13Angels = true;
+      for (int i = 0; i < fullHand.Count; i++) {
+        if (i < Constants.Angels.Count && fullHand[i] != Constants.Angels[foundEye ? i - 1 : i]) {
+          if (i > 0 && fullHand[i] == fullHand[i - 1]) {
+            foundEye = true;
+          }
+          else {
+            is13Angels = false;
+            break;
+          }
+        }
+      }
+      // All pairs
+      bool isAllPairs = true;
+      for (int i = 0; i < fullHand.Count; i = i + 2) {
+        if (fullHand[i] != fullHand[i + 1]) {
+          isAllPairs = false;
+          break;
+        }
+      }
+      // Add abnormal hands to wrappers
+      if (is13Angels || isAllPairs) {
+        Set handSet = new Set(SetType.Other, fullHand);
+        wrappersToReturn.Add(LockableWrapper.WrapSet(handSet, discard));
+      }
+    }
+
     return wrappersToReturn;
   }
 

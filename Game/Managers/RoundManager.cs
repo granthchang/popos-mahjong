@@ -45,13 +45,18 @@ public class RoundManager : MonoBehaviourPunCallbacks {
       for (int i = 0; i < _players.Count; i++) {
         Player currPlayer = _players[(startIndex + i) % _players.Count];
         List<Card> cards = new List<Card>();
-        for (int j = 0; j < 13; j++) {
-          Card c = _deck.Draw();
-          while (c.Suit == Suit.Flower) {
-            PlayerManager.Singleton.RevealFlower(currPlayer, c);
-            c = _deck.Draw();
+        if (currPlayer == PhotonNetwork.LocalPlayer && Constants.ForceDealAngels > 0) {
+          cards.AddRange(Constants.Angels);
+        }
+        else {
+          for (int j = 0; j < 13; j++) {
+            Card c = _deck.Draw();
+            while (c.Suit == Suit.Flower) {
+              PlayerManager.Singleton.RevealFlower(currPlayer, c);
+              c = _deck.Draw();
+            }
+            cards.Add(c);
           }
-          cards.Add(c);
         }
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
