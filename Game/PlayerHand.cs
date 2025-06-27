@@ -127,6 +127,18 @@ public class PlayerHand {
     return LockableWrapper.WrapSetsSeparate(GetRuns(HiddenHand, targetCard, false), targetCard);
   }
 
+  public LockableWrapper GetLockableDisconnect() {
+    List<Card> fullHand = new List<Card>(HiddenHand);
+    fullHand.Sort();
+    for (int i = 0; i < fullHand.Count - 1; i++) {
+      List<Card> connectedCards = fullHand[i].GetConnectedCards();
+      if (connectedCards.Contains(fullHand[i + 1])) {
+        return null;
+      }
+    }
+    return LockableWrapper.WrapSet(new Set(SetType.Other, fullHand), null);
+  }
+
   public List<LockableWrapper> GetLockableHands(Card targetCard, bool findHidden) {
     // Create temp hand that includes the discard if needed.
     List<Card> fullHand = new List<Card>(HiddenHand);

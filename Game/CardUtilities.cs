@@ -41,6 +41,16 @@ namespace CardUtilities {
       ID = id;
     }
 
+    public List<Card> GetConnectedCards() {
+      List<Card> cards = new List<Card>();
+      for (int v = Value - 2; v <= Value + 2; v++) {
+        if (v >= 1 && v <= Constants.GetMaxValueFromSuit(Suit)) {
+          cards.Add(new Card(Suit, v, 0));
+        }
+      }
+      return cards;
+    }
+
     public override string ToString() {
       return $"{Suit},{Value},{ID}";
     }
@@ -67,7 +77,7 @@ namespace CardUtilities {
     }
 
     public static bool operator ==(Card left, Card right) {
-      if(ReferenceEquals(left, null)) {
+      if (ReferenceEquals(left, null)) {
         return ReferenceEquals(right, null);
       }
       return left.CompareTo(right) == 0;

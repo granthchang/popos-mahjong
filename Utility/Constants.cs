@@ -53,6 +53,18 @@ public static class Constants {
     }
   }
 
+  public static int GetMaxValueFromSuit(Suit suit) {
+    switch (suit) {
+      case Suit.Flower: return 4;
+      case Suit.Dragon: return 3;
+      case Suit.Wind: return 4;
+      case Suit.Circle: return 9;
+      case Suit.Man: return 9;
+      case Suit.Stick: return 9;
+      default: return 0;
+    }
+  }
+
   // Scoring functions
   public static int GetCostForFans(int fans) {
     switch (fans) {
