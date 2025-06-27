@@ -25,8 +25,8 @@ public class PlayerHand {
     HandDisplay.Reset();
   }
 
-  public void SetDiscardEnabled(bool isEnabled) {
-    HandDisplay.SetDiscardEnabled(isEnabled);
+  public void SetCardSelectionEnabled(bool isEnabled) {
+    HandDisplay.SetCardSelectionEnabled(isEnabled);
   }
 
   public void AddCardToHand(Card card) {

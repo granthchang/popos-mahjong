@@ -80,8 +80,8 @@ public class TableDisplay : ActivatablePanel {
     }
   }
 
-  private void HandleCardSelected(Card selectedCard) {
-    if (selectedCard == null) {
+  private void HandleCardSelected(Card selectedCard, bool isDiscarding) {
+    if (selectedCard == null || !isDiscarding) {
       _discardButton.interactable = false;
       _discardButton.onClick.RemoveAllListeners();
     } else {
@@ -89,7 +89,7 @@ public class TableDisplay : ActivatablePanel {
       _discardButton.onClick.RemoveAllListeners();
       _discardButton.onClick.AddListener(() => {
         _discardButton.interactable = false;
-        PlayerManager.Singleton.SetDiscardEnabled(false);
+        PlayerManager.Singleton.SetCardSelectionEnabled(false);
         RoundManager.Singleton.Discard(selectedCard);
       });
     }

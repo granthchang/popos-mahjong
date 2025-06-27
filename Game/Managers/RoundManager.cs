@@ -61,7 +61,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
       _hasLockedSetThisTurn = false;
-      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null, true);
+      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null, true, true);
     }
   }
 
@@ -78,7 +78,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     else {
       _turnIndex = (_players.IndexOf(requester) + 1) % _players.Count;
       _hasLockedSetThisTurn = false;
-      PlayerManager.Singleton.StartTurn(_players[_turnIndex], null, null, false);
+      PlayerManager.Singleton.StartTurn(_players[_turnIndex], null, null, false, false);
     }
   }
 
@@ -111,7 +111,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     _lastDiscarder = sender;
     _turnIndex = (_players.IndexOf(sender) + 1) % _players.Count;
     _hasLockedSetThisTurn = false;
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender, _deck.Size > 0);
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender, _deck.Size > 0, false);
   }
 
   public void ConsiderDiscard() {
@@ -141,7 +141,7 @@ public class RoundManager : MonoBehaviourPunCallbacks {
     if (_hasLockedSetThisTurn) {
       PlayerManager.Singleton.RequestDiscard(_players[_turnIndex]);
     } else {
-      PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0);
+      PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0, false);
     }
   }
 

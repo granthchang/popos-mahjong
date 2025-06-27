@@ -20,7 +20,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   public event Action<Player, Card, bool, bool> OnTurnStarted;
   public event Action<Player> OnDiscardRequested;
-  public event Action<Card> OnSelectedCardChanged;
+  public event Action<Card, bool> OnSelectedCardChanged;
   public event Action<Card> OnDiscard;
   public event Action<Player> OnDiscardConsidered;
   public event Action<Card> OnDiscardUsed;
@@ -28,6 +28,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
   public Dictionary<Player, PlayerHand> HandDictionary { get; private set; }
 
   private Set _lastConvertedKong = null;
+  private bool _isSelectingDiscard = false;
 
   private void Awake() {
     if (Singleton != null && Singleton != this) {
@@ -152,24 +153,35 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     HandDictionary[revealer].RevealFlower(card);
   }
 
-  public void StartTurn(Player turnPlayer, Card lastDiscard, Player discarder, bool canDraw) {
+  public void StartTurn(Player turnPlayer, Card lastDiscard, Player discarder, bool canDraw, bool isFirstTurn) {
     if (PhotonNetwork.IsMasterClient) {
-      photonView.RPC("RpcClientHandleTurnStarted", RpcTarget.All, turnPlayer, lastDiscard, discarder, canDraw);
+      photonView.RPC("RpcClientHandleTurnStarted", RpcTarget.All, turnPlayer, lastDiscard, discarder, canDraw, isFirstTurn);
     }
   }
 
   [PunRPC]
-  private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard, Player discarder, bool canDraw) {
-    bool canUseDiscard = false;
-    if (discarder != PhotonNetwork.LocalPlayer) {
-      List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lastDiscard, false);
-      lockableWrappers.AddRange(HandDictionary[PhotonNetwork.LocalPlayer].GetLockablePongsAndKongs(lastDiscard));
-      if (turnPlayer == PhotonNetwork.LocalPlayer) {
-        lockableWrappers.AddRange(HandDictionary[PhotonNetwork.LocalPlayer].GetLockableRuns(lastDiscard));
+  private void RpcClientHandleTurnStarted(Player turnPlayer, Card lastDiscard, Player discarder, bool canDraw, bool isFirstTurn) {
+    // On first turn, all players check for Disconnect. If so, enable card selection.
+    if (isFirstTurn) {
+      if (HandDictionary[PhotonNetwork.LocalPlayer].GetLockableDisconnect() != null) {
+        _isSelectingDiscard = false;
+        HandDictionary[PhotonNetwork.LocalPlayer].SetCardSelectionEnabled(true);
       }
-      canUseDiscard = lockableWrappers.Count > 0;
+      OnTurnStarted?.Invoke(turnPlayer, lastDiscard, false, canDraw);
     }
-    OnTurnStarted?.Invoke(turnPlayer, lastDiscard, canUseDiscard, canDraw);
+    // If not first turn, check if you can use the discard.
+    else {
+      bool canUseDiscard = false;
+      if (lastDiscard != null && discarder != PhotonNetwork.LocalPlayer) {
+        List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(lastDiscard, false);
+        lockableWrappers.AddRange(HandDictionary[PhotonNetwork.LocalPlayer].GetLockablePongsAndKongs(lastDiscard));
+        if (turnPlayer == PhotonNetwork.LocalPlayer) {
+          lockableWrappers.AddRange(HandDictionary[PhotonNetwork.LocalPlayer].GetLockableRuns(lastDiscard));
+        }
+        canUseDiscard = lockableWrappers.Count > 0;
+      }
+      OnTurnStarted?.Invoke(turnPlayer, lastDiscard, canUseDiscard, canDraw);
+    }
   }
 
   public void RequestDiscard(Player requestedPlayer) {
@@ -183,7 +195,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     OnDiscardRequested?.Invoke(requestedPlayer);
     // If discard is requested for local player, enable discard for the local hand
     if (requestedPlayer == PhotonNetwork.LocalPlayer) {
-      HandDictionary[requestedPlayer].SetDiscardEnabled(true);
+      _isSelectingDiscard = true;
+      HandDictionary[requestedPlayer].SetCardSelectionEnabled(true);
     }
     // Otherwise, if there is a converted kong, check if the local player can win off of it
     else if (_lastConvertedKong != null) {
@@ -194,8 +207,34 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     }
   }
 
-  public void SetDiscardEnabled(bool enabled) {
-    HandDictionary[PhotonNetwork.LocalPlayer].SetDiscardEnabled(enabled);
+  public void SetCardSelectionEnabled(bool enabled) {
+    HandDictionary[PhotonNetwork.LocalPlayer].SetCardSelectionEnabled(enabled);
+  }
+
+  private void HandleSelectedCardChanged(Card selectedCard) {
+    OnSelectedCardChanged?.Invoke(selectedCard, _isSelectingDiscard);
+    HandDictionary[PhotonNetwork.LocalPlayer].CloseLockModal(); // TODO: remove this call so that we don't get extra Cancel Consider calls
+
+    List<LockableWrapper> lockableWrappers = new List<LockableWrapper>();
+    // If using selecting for discard, we should check for winning hands and hidden kongs
+    if (_isSelectingDiscard) {
+      lockableWrappers.AddRange(HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(selectedCard, true));
+      LockableWrapper lockableKong = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHiddenKong(selectedCard);
+      if (lockableKong != null) {
+        lockableWrappers.Add(lockableKong);
+      }
+    }
+    // If not using a discard, only look for disconnect
+    else {
+      LockableWrapper disconnect = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableDisconnect();
+      if (disconnect != null) {
+        lockableWrappers.Add(disconnect);
+      }
+    }
+    // Present the lock modal if there is anything lockable
+    if (lockableWrappers.Count > 0) {
+      HandDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(lockableWrappers);
+    }
   }
 
   public void Discard(Player target, Card discard) {
@@ -218,21 +257,6 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
       }
       _lastConvertedKong = null;
     }
-  }
-
-  private void HandleSelectedCardChanged(Card selectedCard) {
-    OnSelectedCardChanged?.Invoke(selectedCard);
-    HandDictionary[PhotonNetwork.LocalPlayer].CloseLockModal();
-
-    // Check for winning hands, hidden kongs, or locked pongs involving this card that could be turned into a kong. If there are any, open the lock modal.
-    List<LockableWrapper> lockableWrappers = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHands(selectedCard, true);
-    LockableWrapper lockableKong = HandDictionary[PhotonNetwork.LocalPlayer].GetLockableHiddenKong(selectedCard);
-    if (lockableKong != null) {
-      lockableWrappers.Add(lockableKong);
-    }
-    if (lockableWrappers.Count > 0) {
-      HandDictionary[PhotonNetwork.LocalPlayer].OpenLockModal(lockableWrappers);
-    } 
   }
 
   public void ConsiderDiscard(Player sender, bool isTargetsTurn, Card discard) {
@@ -269,7 +293,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     }
     // If this is the player who revealed the kong, disable their discard until sender has decided whether they'll use it.
     else if (turnPlayer == PhotonNetwork.LocalPlayer) {
-      HandDictionary[turnPlayer].SetDiscardEnabled(false);
+      HandDictionary[turnPlayer].SetCardSelectionEnabled(false);
     }
     OnDiscardConsidered?.Invoke(sender);
   }
@@ -282,7 +306,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
   [PunRPC]
   private void RpcClientHandleCardsLocked(Player target, LockableWrapper wrapper) {
-    OnSelectedCardChanged?.Invoke(null);
+    OnSelectedCardChanged?.Invoke(null, false);
     HandDictionary[target].LockCards(wrapper, out bool ConvertedPongToKong);
 
     // If using the discard, fire event to remove it.

@@ -37,7 +37,7 @@ public class HandDisplay : ActivatablePanel {
     }
   }
 
-  public void SetDiscardEnabled(bool enabled) {
+  public void SetCardSelectionEnabled(bool enabled) {
     if (!enabled) {
       CloseLockModal();
     }
