@@ -2,7 +2,8 @@ using Photon.Pun;
 using TMPro;
 using UnityEngine;
 
-public class WaitingUI : ActivatablePanel {
+public class WaitingUI : ActivatablePanel
+{
   [Header("Status Settings")]
   [SerializeField] private TMP_Text _statusTextObj;
   [SerializeField] private string _waitingStatusText = "Waiting for more players...";
@@ -12,7 +13,8 @@ public class WaitingUI : ActivatablePanel {
   [SerializeField] private TMP_Text _roomCodeTextObj;
   [SerializeField] private string _roomCodeText = "Room code:";
 
-  protected override void Awake() {
+  protected override void Awake()
+  {
     base.Awake();
     RoomManager.Singleton.OnRoomManagerStarted += Reset;
     GameManager.Singleton.OnGameAboutToStart += () => _statusTextObj.text = _startingStatusText;
@@ -20,10 +22,12 @@ public class WaitingUI : ActivatablePanel {
     GameManager.Singleton.OnGameStopped += Reset;
   }
 
-  private  void Start() {
+  private void Start()
+  {
 #if UNITY_EDITOR
     // Prevents PIE errors before DefaultSceneLoader loads the initial scene
-    if (PhotonNetwork.CurrentRoom == null) {
+    if (PhotonNetwork.CurrentRoom == null)
+    {
       return;
     }
 #endif
@@ -31,7 +35,8 @@ public class WaitingUI : ActivatablePanel {
     _roomCodeTextObj.text = $"{_roomCodeText} {PhotonNetwork.CurrentRoom.Name}";
   }
 
-  private void Reset() {
+  private void Reset()
+  {
     _statusTextObj.text = _waitingStatusText;
     base.Awake();
   }

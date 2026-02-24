@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using CardUtilities;
 
-public static class Constants {
+public static class Constants
+{
   // Room custom properties
   public static readonly string RoomSizeKey = "RoomSize";
   public static readonly string TimeToStartKey = "TimeToStart";
@@ -15,8 +16,10 @@ public static class Constants {
   public static readonly string FlowerKey = "Flower";
 
   // Utility functions
-  public static string IntToWind(int n) {
-    switch (n) {
+  public static string IntToWind(int n)
+  {
+    switch (n)
+    {
       case 1: return "East";
       case 2: return "South";
       case 3: return "West";
@@ -25,8 +28,10 @@ public static class Constants {
     }
   }
 
-  public static int WindToInt(string wind) {
-    switch (wind) {
+  public static int WindToInt(string wind)
+  {
+    switch (wind)
+    {
       case "East": return 1;
       case "South": return 2;
       case "West": return 3;
@@ -35,8 +40,10 @@ public static class Constants {
     }
   }
 
-  public static string IntToDragon(int n) {
-    switch (n) {
+  public static string IntToDragon(int n)
+  {
+    switch (n)
+    {
       case 1: return "Green";
       case 2: return "Red";
       case 3: return "White";
@@ -44,8 +51,10 @@ public static class Constants {
     }
   }
 
-  public static int DragonToInt(string dragon) {
-    switch (dragon) {
+  public static int DragonToInt(string dragon)
+  {
+    switch (dragon)
+    {
       case "Green": return 1;
       case "Red": return 2;
       case "White": return 3;
@@ -53,8 +62,10 @@ public static class Constants {
     }
   }
 
-  public static int GetMaxValueFromSuit(Suit suit) {
-    switch (suit) {
+  public static int GetMaxValueFromSuit(Suit suit)
+  {
+    switch (suit)
+    {
       case Suit.Flower: return 4;
       case Suit.Dragon: return 3;
       case Suit.Wind: return 4;
@@ -66,8 +77,10 @@ public static class Constants {
   }
 
   // Scoring functions
-  public static int GetCostForFans(int fans) {
-    switch (fans) {
+  public static int GetCostForFans(int fans)
+  {
+    switch (fans)
+    {
       case 0: return 0;
       case 1: return 2;
       case 2: return 4;

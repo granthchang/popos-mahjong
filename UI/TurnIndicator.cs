@@ -3,7 +3,8 @@ using Photon.Realtime;
 using TMPro;
 using UnityEngine;
 
-public class TurnIndicator : ActivatablePanel {
+public class TurnIndicator : ActivatablePanel
+{
   [SerializeField] private TMP_Text _indicatorText;
   [SerializeField] private string _isDrawingText = "{player} is drawing...";
   [SerializeField] private string _isDiscardingText = "{player} is discarding...";
@@ -11,7 +12,8 @@ public class TurnIndicator : ActivatablePanel {
   [SerializeField] private string _deckExhaustedText = "Deck exhausted. Cannot draw.";
 
 
-  protected override void Awake() {
+  protected override void Awake()
+  {
     base.Awake();
 
     RoundManager.Singleton.OnRoundStarted += () => { ActivatePanel(true); };
@@ -23,15 +25,18 @@ public class TurnIndicator : ActivatablePanel {
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
   }
 
-  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard, bool canDraw) {
+  private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard, bool canDraw)
+  {
     _indicatorText.text = canDraw ? _isDrawingText.Replace("{player}", target.NickName) : _deckExhaustedText;
   }
 
-  private void HandleDiscardRequested(Player target) {
+  private void HandleDiscardRequested(Player target)
+  {
     _indicatorText.text = _isDiscardingText.Replace("{player}", target.NickName);
   }
 
-  private void HandleDiscardConsidered(Player target) {
+  private void HandleDiscardConsidered(Player target)
+  {
     _indicatorText.text = _isDiscardConsideredText.Replace("{player}", target.NickName);
   }
 }

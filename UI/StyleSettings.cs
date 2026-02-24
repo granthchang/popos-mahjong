@@ -2,7 +2,8 @@ using CardUtilities;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Style Settings")]
-public class StyleSettings : ScriptableObject {
+public class StyleSettings : ScriptableObject
+{
   [Header("Tile Sprites")]
   public Sprite[] FlowerSprites;
   public Sprite[] DragonSprites;
@@ -20,12 +21,15 @@ public class StyleSettings : ScriptableObject {
   public Color TileBlue = Color.blue;
   public Color TileYellow = Color.yellow;
 
-  public StyleSettings() {
+  public StyleSettings()
+  {
   }
 
-  public Sprite GetSpriteFromCard(Card card) {
+  public Sprite GetSpriteFromCard(Card card)
+  {
     int index = (card.ID % 100) / 10;
-    switch (card.Suit) {
+    switch (card.Suit)
+    {
       case Suit.Flower:
         int value = (card.ID % 100) / 10;
         int id = (card.ID % 100) % 10;

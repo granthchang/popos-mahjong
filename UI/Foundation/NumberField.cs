@@ -10,20 +10,24 @@ public class NumberField : MonoBehaviour
   public int MaxValue = 99;
   public bool ClampMax = false;
 
-  private void Start() {
+  private void Start()
+  {
     _inputField.text = $"{DefaultValue}";
-    if (MinValue > MaxValue) {
+    if (MinValue > MaxValue)
+    {
       CalmpMin = ClampMax = false;
     }
 
-    _inputField.onEndEdit.AddListener(delegate{
+    _inputField.onEndEdit.AddListener(delegate
+    {
       int num = int.Parse(_inputField.text);
       num = ClampNum(num);
       _inputField.text = $"{num}";
     });
   }
 
-  public void Increment() {
+  public void Increment()
+  {
     int prev = int.Parse(_inputField.text);
     prev++;
     prev = ClampNum(prev);
@@ -31,7 +35,8 @@ public class NumberField : MonoBehaviour
     _inputField.onEndEdit?.Invoke(_inputField.text);
   }
 
-  public void Decrement() {
+  public void Decrement()
+  {
     int prev = int.Parse(_inputField.text);
     prev--;
     prev = ClampNum(prev);
@@ -39,11 +44,14 @@ public class NumberField : MonoBehaviour
     _inputField.onEndEdit?.Invoke(_inputField.text);
   }
 
-  private int ClampNum(int num) {
-    if (CalmpMin && num < MinValue) {
+  private int ClampNum(int num)
+  {
+    if (CalmpMin && num < MinValue)
+    {
       return MinValue;
     }
-    if (ClampMax && num > MaxValue) {
+    if (ClampMax && num > MaxValue)
+    {
       return MaxValue;
     }
     return num;

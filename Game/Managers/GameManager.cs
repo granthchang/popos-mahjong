@@ -6,7 +6,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : MonoBehaviourPunCallbacks {
+public class GameManager : MonoBehaviourPunCallbacks
+{
   public static GameManager Singleton;
   // Starting/stopping game
   public event Action OnGameAboutToStart;
@@ -26,20 +27,25 @@ public class GameManager : MonoBehaviourPunCallbacks {
   private int _currentWind;
   private int _currentBankIndex;
 
-  private void Awake() {
-    if (Singleton != null && Singleton != this) {
+  private void Awake()
+  {
+    if (Singleton != null && Singleton != this)
+    {
       this.gameObject.SetActive(false);
     }
     Singleton = this;
 
-    if (PhotonNetwork.IsMasterClient) {
+    if (PhotonNetwork.IsMasterClient)
+    {
       RoundManager.Singleton.OnRoundFinished += HandleRoundFinished;
     }
     RoomSettings = ScriptableObject.CreateInstance<RoomSettings>();
   }
 
-  public void StartGame() {
-    if (PhotonNetwork.IsMasterClient) {
+  public void StartGame()
+  {
+    if (PhotonNetwork.IsMasterClient)
+    {
       _currentCoroutine = StartGameCoroutine();
       StartCoroutine(_currentCoroutine);
       PlayerList = null;
@@ -48,8 +54,10 @@ public class GameManager : MonoBehaviourPunCallbacks {
   }
 
   // Called on all clients in OnPlayerLeftRoom
-  public void StopGame() {
-    if (_currentCoroutine != null) {
+  public void StopGame()
+  {
+    if (_currentCoroutine != null)
+    {
       StopCoroutine(_currentCoroutine);
     }
     PlayerList = null;
@@ -61,24 +69,28 @@ public class GameManager : MonoBehaviourPunCallbacks {
   }
 
   [PunRPC]
-  private void RpcClientHandleGameAboutToStart() {
+  private void RpcClientHandleGameAboutToStart()
+  {
     OnGameAboutToStart?.Invoke();
   }
 
   [PunRPC]
-  private void RpcClientHandleGameStarted() {
+  private void RpcClientHandleGameStarted()
+  {
     Debug.Log("--- GAME STARTED ---");
     OnGameStarted?.Invoke();
   }
 
-  private IEnumerator StartGameCoroutine() {
+  private IEnumerator StartGameCoroutine()
+  {
     int time = RoomSettings.TimeToStart;
     yield return new WaitForSeconds(time);
 
     // Shuffle player list
     PlayerList = new List<Player>(PhotonNetwork.PlayerList);
     int n = PlayerList.Count;
-    while (n > 1) {
+    while (n > 1)
+    {
       n--;
       int k = (int)UnityEngine.Random.Range(0, n + 1);
       Player temp = PlayerList[k];
@@ -89,17 +101,20 @@ public class GameManager : MonoBehaviourPunCallbacks {
     // Continues game setup in RpcClientHandleNewPlayerList once we receive the sync
   }
 
-  private void InitializePlayerProperties() {
+  private void InitializePlayerProperties()
+  {
     // Set player starting values
-    for (int i = 0; i < PlayerList.Count; i++) {
+    for (int i = 0; i < PlayerList.Count; i++)
+    {
       Hashtable hash = new Hashtable();
       hash.Add(Constants.ScoreKey, RoomSettings.StartingScore);
-      hash.Add(Constants.FlowerKey, i+1);
+      hash.Add(Constants.FlowerKey, i + 1);
       PlayerList[i].SetCustomProperties(hash);
     }
   }
 
-  private void HandlePlayerPropertiesInitialized() {
+  private void HandlePlayerPropertiesInitialized()
+  {
     _bHasGameFinished = false;
     RoundManager.Singleton.StartRound(PlayerList, _currentBankIndex);
   }
@@ -107,11 +122,13 @@ public class GameManager : MonoBehaviourPunCallbacks {
   // Separate from RpcClientHandleCurrentWindUpdated because this only needs to be called once at the very beginning of the game. It
   // shouldn't after each round because PlayerList is only used to dictate turn order, which will not change.
   [PunRPC]
-  private void RpcClientHandleNewPlayerList(List<Player> list) {
+  private void RpcClientHandleNewPlayerList(List<Player> list)
+  {
     PlayerList = list;
     OnPlayerListUpdated?.Invoke(PlayerList);
     // Continue setting up game now that we have the playerlist
-    if (PhotonNetwork.IsMasterClient) {
+    if (PhotonNetwork.IsMasterClient)
+    {
       PlayerManager.Singleton.SetHandOwners(list);
       _currentBankIndex = 0;
       _currentWind = 1;
@@ -122,30 +139,41 @@ public class GameManager : MonoBehaviourPunCallbacks {
   }
 
   [PunRPC]
-  private void RpcClientHandleCurrentWindUpdated(int newWind) {
+  private void RpcClientHandleCurrentWindUpdated(int newWind)
+  {
     _currentWind = newWind;
     OnCurrentWindUpdated?.Invoke(_currentWind);
   }
 
-  public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable propertiesThatChanged) {
+  public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable propertiesThatChanged)
+  {
     RoomSettings.UpdateSettings(propertiesThatChanged);
-    if (propertiesThatChanged.ContainsKey(Constants.MinimumFansKey)) {
+    if (propertiesThatChanged.ContainsKey(Constants.MinimumFansKey))
+    {
       OnMinFansSet?.Invoke(RoomSettings.MinimumFans);
     }
   }
 
-  public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps) {
-    if (PlayerList != null) {
+  public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
+  {
+    if (PlayerList != null)
+    {
       OnPlayerListUpdated?.Invoke(PlayerList);
-    } else {
+    }
+    else
+    {
       OnPlayerListUpdated?.Invoke(new List<Player>(PhotonNetwork.PlayerList));
     }
   }
 
-  private void HandleRoundFinished(Player winner, Player loser, int fans) {
-    if (winner == null) {
+  private void HandleRoundFinished(Player winner, Player loser, int fans)
+  {
+    if (winner == null)
+    {
       RoundManager.Singleton.StartRound(PlayerList, _currentBankIndex);
-    } else {
+    }
+    else
+    {
       bool shouldAdvanceFlower = PlayerList[_currentBankIndex] != winner;
       PropertyManager.Singleton.UpdatePropertiesWithCallback(
         () => { UpdatePlayerData(winner, loser, fans, shouldAdvanceFlower); },
@@ -154,15 +182,21 @@ public class GameManager : MonoBehaviourPunCallbacks {
     }
   }
 
-  private void UpdatePlayerData(Player winner, Player loser, int fans, bool shouldAdvanceFlower) {
+  private void UpdatePlayerData(Player winner, Player loser, int fans, bool shouldAdvanceFlower)
+  {
     int cost = Constants.GetCostForFans(fans);
     int amountPaidToWinner = 0;
-    foreach (Player p in PlayerList) {
+    foreach (Player p in PlayerList)
+    {
       // Update scores, remembering the amount that was paid by the winner.
-      if (p != winner) {
-        if (loser == null || loser == p) {
+      if (p != winner)
+      {
+        if (loser == null || loser == p)
+        {
           amountPaidToWinner += PlayerUtilities.UpdatePlayerData(p, -(cost * 2), shouldAdvanceFlower);
-        } else {
+        }
+        else
+        {
           amountPaidToWinner += PlayerUtilities.UpdatePlayerData(p, -cost, shouldAdvanceFlower);
         }
       }
@@ -170,24 +204,31 @@ public class GameManager : MonoBehaviourPunCallbacks {
     PlayerUtilities.UpdatePlayerData(winner, amountPaidToWinner, shouldAdvanceFlower);
   }
 
-  private void HandlePlayerDataUpdated(bool shouldAdvanceFlower) {
+  private void HandlePlayerDataUpdated(bool shouldAdvanceFlower)
+  {
     // Count broke players
     int brokePlayers = 0;
-    foreach (Player p in PlayerList) {
-      if ((int)p.CustomProperties[Constants.ScoreKey] == 0) {
+    foreach (Player p in PlayerList)
+    {
+      if ((int)p.CustomProperties[Constants.ScoreKey] == 0)
+      {
         brokePlayers++;
       }
     }
-    if (brokePlayers >= RoomSettings.MaxBrokePlayers) {
+    if (brokePlayers >= RoomSettings.MaxBrokePlayers)
+    {
       FinishGame();
       return;
     }
     // Update wind and check for end of game
-    if (shouldAdvanceFlower) {
+    if (shouldAdvanceFlower)
+    {
       _currentBankIndex = (_currentBankIndex + 1) % PlayerList.Count;
-      if (_currentBankIndex == 0) {
+      if (_currentBankIndex == 0)
+      {
         _currentWind++;
-        if (_currentWind > RoomSettings.Cycles) {
+        if (_currentWind > RoomSettings.Cycles)
+        {
           FinishGame();
           return;
         }
@@ -198,17 +239,22 @@ public class GameManager : MonoBehaviourPunCallbacks {
     RoundManager.Singleton.StartRound(new List<Player>(PlayerList), _currentBankIndex);
   }
 
-  private void FinishGame() {
-    if (!_bHasGameFinished) {
+  private void FinishGame()
+  {
+    if (!_bHasGameFinished)
+    {
       _bHasGameFinished = true;
       // Sort players in order of score
       List<Player> finalPlacements = new List<Player>(PlayerList);
       Player temp;
-      for (int i = 0; i < finalPlacements.Count - 1; i++) {
-        for (int j = 0; j < finalPlacements.Count - 1; j++) {
+      for (int i = 0; i < finalPlacements.Count - 1; i++)
+      {
+        for (int j = 0; j < finalPlacements.Count - 1; j++)
+        {
           int leftScore = (int)finalPlacements[j].CustomProperties[Constants.ScoreKey];
           int rightScore = (int)finalPlacements[j + 1].CustomProperties[Constants.ScoreKey];
-          if (rightScore > leftScore) {
+          if (rightScore > leftScore)
+          {
             temp = finalPlacements[j + 1];
             finalPlacements[j + 1] = finalPlacements[j];
             finalPlacements[j] = temp;
@@ -220,10 +266,12 @@ public class GameManager : MonoBehaviourPunCallbacks {
   }
 
   [PunRPC]
-  private void RpcClientHandleGameFinished(List<Player> finalPlacements) {
+  private void RpcClientHandleGameFinished(List<Player> finalPlacements)
+  {
     OnGameFinished?.Invoke(finalPlacements);
     Debug.Log("--- GAME FINISHED ---");
-    foreach (Player p in finalPlacements) {
+    foreach (Player p in finalPlacements)
+    {
     }
   }
 }

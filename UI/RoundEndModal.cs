@@ -6,7 +6,8 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class RoundEndModal : ActivatablePanel {
+public class RoundEndModal : ActivatablePanel
+{
   [Header("Text Settings")]
   [SerializeField] private TMP_Text _primaryTextObj;
   [SerializeField] private TMP_Text _secondaryTextObj;
@@ -32,7 +33,8 @@ public class RoundEndModal : ActivatablePanel {
   [SerializeField] private Transform _approvalList;
   [SerializeField] private GameObject _approvalListItem;
 
-  protected override void Awake() {
+  protected override void Awake()
+  {
     base.Awake();
     FanApprovalManager.Singleton.OnFanApprovalsStarted += OpenModal;
     FanApprovalManager.Singleton.OnFanApprovalsStopped += () => { ActivatePanel(false); };
@@ -43,14 +45,17 @@ public class RoundEndModal : ActivatablePanel {
     FanApprovalManager.Singleton.OnApproveButtonInteractableChanged += HandleApproveButtonInteractableChanged;
   }
 
-  private void OpenModal(Player winner, Player loser, List<Set> hand) {
-    if (winner == null) {
+  private void OpenModal(Player winner, Player loser, List<Set> hand)
+  {
+    if (winner == null)
+    {
       _primaryTextObj.text = _deckExhaustedPrimaryText;
       _secondaryTextObj.text = _deckExhaustedSeconaryText;
     }
-    else {
+    else
+    {
       _primaryTextObj.text = _winnerText.Replace("{player}", winner.NickName);
-      _secondaryTextObj.text = (loser == null) ? _selfDrawnText: _loserText.Replace("{player}", loser.NickName); 
+      _secondaryTextObj.text = (loser == null) ? _selfDrawnText : _loserText.Replace("{player}", loser.NickName);
     }
     _fanCountObj.SetActive(winner != null);
     _approveButtonTextObj.text = (winner == null) ? _deckExhaustedContinueText : _approveFanText;
@@ -58,42 +63,51 @@ public class RoundEndModal : ActivatablePanel {
     ActivatePanel(true);
   }
 
-  private void DisplayHand(List<Set> hand) {
+  private void DisplayHand(List<Set> hand)
+  {
     _handDisplayObj.gameObject.SetActive(hand.Count != 0);
     _emptyDeckObj.SetActive(hand.Count == 0);
     Card.ClearCardsInTransform(_handDisplayObj.transform);
-    foreach (Set s in hand) {
+    foreach (Set s in hand)
+    {
       GameObject newSet = GameObject.Instantiate(_setPrefab, _handDisplayObj.transform);
       newSet.GetComponent<SetDisplay>().SetSet(s);
     }
   }
 
-  private void HandleFansUpdated(int fans) {
+  private void HandleFansUpdated(int fans)
+  {
     _inputField.text = fans.ToString();
   }
 
-  private void HandleApprovalsUpdated(int approvals) {
+  private void HandleApprovalsUpdated(int approvals)
+  {
     // Clear existing approval
-    foreach (Transform child in _approvalList) {
+    foreach (Transform child in _approvalList)
+    {
       GameObject.Destroy(child.gameObject);
     }
     // Repopulate with the appropriate amount
-    for (int i = 0; i < approvals; i++) {
+    for (int i = 0; i < approvals; i++)
+    {
       GameObject listItem = GameObject.Instantiate(_approvalListItem, _approvalList);
     }
   }
 
-  public void ApprovalFans() {
+  public void ApprovalFans()
+  {
     int fans = int.Parse(_inputField.text);
     FanApprovalManager.Singleton.ApproveFans(fans);
   }
 
-  public void UpdateFans(string fanString) {
+  public void UpdateFans(string fanString)
+  {
     int newFans = int.Parse(fanString);
     FanApprovalManager.Singleton.UpdateFans(newFans);
   }
 
-  private void HandleApproveButtonInteractableChanged(bool isInteractable) {
+  private void HandleApproveButtonInteractableChanged(bool isInteractable)
+  {
     _approveButton.interactable = isInteractable;
   }
 }

@@ -4,7 +4,8 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 
-public class ChatManager : MonoBehaviourPunCallbacks {
+public class ChatManager : MonoBehaviourPunCallbacks
+{
   [Header("References")]
   [SerializeField] private TMP_Text _chatLog;
   [SerializeField] private TMP_InputField _chatField;
@@ -17,7 +18,8 @@ public class ChatManager : MonoBehaviourPunCallbacks {
 
   private bool _wasInputFocused;
 
-  private void Start() {
+  private void Start()
+  {
     _chatLog.color = _defaultColor;
     _serverColorHex = ColorUtility.ToHtmlStringRGB(_serverMessageColor);
     _stringBuilder = new StringBuilder();
@@ -25,18 +27,23 @@ public class ChatManager : MonoBehaviourPunCallbacks {
     RpcClientShowMessage("You joined the game.");
   }
 
-  public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer) {
+  public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
+  {
     RpcClientShowMessage($"{newPlayer.NickName} joined the game.");
   }
 
-  public override void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer) {
+  public override void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer)
+  {
     RpcClientShowMessage($"{otherPlayer.NickName} left the game.");
   }
 
-  private void Update() {
+  private void Update()
+  {
     // If enter was hit while focusing input field, send contents as message
-    if (Input.GetKeyDown(KeyCode.Return) && _wasInputFocused && !_chatField.isFocused) {
-      if (!string.IsNullOrWhiteSpace(_chatField.text)) {
+    if (Input.GetKeyDown(KeyCode.Return) && _wasInputFocused && !_chatField.isFocused)
+    {
+      if (!string.IsNullOrWhiteSpace(_chatField.text))
+      {
         SendChatMessage(_chatField.text);
       }
     }
@@ -44,18 +51,21 @@ public class ChatManager : MonoBehaviourPunCallbacks {
   }
 
   [PunRPC]
-  private void RpcClientShowMessage(Player sender, string message) {
+  private void RpcClientShowMessage(Player sender, string message)
+  {
     _stringBuilder.Append($"<b>{sender.NickName}: </b>{message}\n");
     _chatLog.text = _stringBuilder.ToString();
   }
 
   [PunRPC]
-  private void RpcClientShowMessage(string message) {
+  private void RpcClientShowMessage(string message)
+  {
     _stringBuilder.Append($"<color=#{_serverColorHex}>{message}</color>\n");
     _chatLog.text = _stringBuilder.ToString();
   }
 
-  private void SendChatMessage(string message) {
+  private void SendChatMessage(string message)
+  {
     photonView.RPC("RpcClientShowMessage", RpcTarget.All, PhotonNetwork.LocalPlayer, message);
     _chatField.text = "";
     _chatField.Select();

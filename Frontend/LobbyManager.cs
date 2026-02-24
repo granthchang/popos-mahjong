@@ -4,12 +4,13 @@ using System;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-public class LobbyManager : MonoBehaviourPunCallbacks {
+public class LobbyManager : MonoBehaviourPunCallbacks
+{
   public static LobbyManager Singleton;
   public event Action<string> OnServerEvent;
   public string TempPlayerName { get; set; }
   public string TempRoomCode { get; set; }
-  
+
   [Header("Room Settings")]
   [SerializeField] private RoomSettings _roomSettings;
 
@@ -35,39 +36,49 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
 
   private bool _isConnected;
 
-  private void Awake() {
-    if (Singleton != null && Singleton != this) {
+  private void Awake()
+  {
+    if (Singleton != null && Singleton != this)
+    {
       this.gameObject.SetActive(false);
     }
     Singleton = this;
   }
 
-  private void Start() {
-    if (!PhotonNetwork.IsConnected) {
+  private void Start()
+  {
+    if (!PhotonNetwork.IsConnected)
+    {
       _isConnected = false;
       PhotonNetwork.ConnectUsingSettings();
       OnServerEvent?.Invoke(_connectingText);
     }
   }
 
-  public override void OnConnectedToMaster() {
+  public override void OnConnectedToMaster()
+  {
     _isConnected = true;
     OnServerEvent?.Invoke(_connectedText);
   }
 
-  public override void OnDisconnected(DisconnectCause cause) {
+  public override void OnDisconnected(DisconnectCause cause)
+  {
     OnServerEvent?.Invoke(_disconnectedText);
   }
 
-  public override void OnErrorInfo(ErrorInfo errorInfo) {
+  public override void OnErrorInfo(ErrorInfo errorInfo)
+  {
     OnServerEvent?.Invoke(_serverErrorText);
   }
 
-  public void HostRoom() {
-    if (!TrySetPlayerName(TempPlayerName)) {
+  public void HostRoom()
+  {
+    if (!TrySetPlayerName(TempPlayerName))
+    {
       return;
     }
-    if (!_isConnected) {
+    if (!_isConnected)
+    {
       OnServerEvent?.Invoke(_notConnectedText);
       return;
     }
@@ -77,76 +88,95 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
     PhotonNetwork.CreateRoom(GenerateRoomCode(), roomOptions);
   }
 
-  public override void OnCreatedRoom() {
+  public override void OnCreatedRoom()
+  {
     OnServerEvent?.Invoke($"{_createdRoomText} {PhotonNetwork.CurrentRoom.Name}");
     PhotonNetwork.CurrentRoom.SetCustomProperties(_roomSettings.ToCustomProperties());
   }
 
-  public override void OnCreateRoomFailed(short returnCode, string message) {
+  public override void OnCreateRoomFailed(short returnCode, string message)
+  {
     OnServerEvent?.Invoke(_hostRoomFailedText);
   }
 
-  public void FindRoom() {
-    if (!TrySetPlayerName(TempPlayerName) || !TrySetRoomCode(TempRoomCode)) {
+  public void FindRoom()
+  {
+    if (!TrySetPlayerName(TempPlayerName) || !TrySetRoomCode(TempRoomCode))
+    {
       return;
     }
-    if (!_isConnected) {
+    if (!_isConnected)
+    {
       OnServerEvent?.Invoke(_notConnectedText);
       return;
     }
     PhotonNetwork.JoinRoom(TempRoomCode);
   }
 
-  public void FindRandomRoom() {
-    if (!TrySetPlayerName(TempPlayerName)) {
+  public void FindRandomRoom()
+  {
+    if (!TrySetPlayerName(TempPlayerName))
+    {
       return;
     }
-    if (!_isConnected) {
+    if (!_isConnected)
+    {
       OnServerEvent?.Invoke(_notConnectedText);
       return;
     }
     PhotonNetwork.JoinRandomRoom();
   }
 
-  public override void OnJoinRoomFailed(short returnCode, string message) {
+  public override void OnJoinRoomFailed(short returnCode, string message)
+  {
     OnServerEvent?.Invoke(message);
   }
 
-  public override void OnJoinRandomFailed(short returnCode, string message) {
+  public override void OnJoinRandomFailed(short returnCode, string message)
+  {
     OnServerEvent?.Invoke(message);
   }
 
-  public override void OnJoinedRoom() {
-    if (!PhotonNetwork.IsMasterClient) {
+  public override void OnJoinedRoom()
+  {
+    if (!PhotonNetwork.IsMasterClient)
+    {
       OnServerEvent?.Invoke(_foundRoomText);
     }
     PhotonNetwork.LoadLevel("Game");
   }
 
-  public void QuitGame() {
-    if (_isConnected) {
+  public void QuitGame()
+  {
+    if (_isConnected)
+    {
       PhotonNetwork.Disconnect();
     }
     Application.Quit();
   }
 
-  private string GenerateRoomCode() {
+  private string GenerateRoomCode()
+  {
     string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     string code = "";
     System.Random random = new System.Random();
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
       code += chars[random.Next(0, 25)];
     }
     return code;
   }
 
-  private bool TrySetPlayerName(string name) {
-    if (string.IsNullOrWhiteSpace(name)) {
+  private bool TrySetPlayerName(string name)
+  {
+    if (string.IsNullOrWhiteSpace(name))
+    {
       OnServerEvent?.Invoke(_playerNameNullText);
       return false;
     }
     string cleaned = name.Trim();
-    if (!Regex.IsMatch(cleaned, _validNamePattern)) {
+    if (!Regex.IsMatch(cleaned, _validNamePattern))
+    {
       OnServerEvent?.Invoke(_playerNameInvalidText);
       return false;
     }
@@ -154,12 +184,15 @@ public class LobbyManager : MonoBehaviourPunCallbacks {
     return true;
   }
 
-  private bool TrySetRoomCode(string code) {
-    if (string.IsNullOrWhiteSpace(code)) {
+  private bool TrySetRoomCode(string code)
+  {
+    if (string.IsNullOrWhiteSpace(code))
+    {
       OnServerEvent?.Invoke(_roomCodeNullText);
       return false;
     }
-    if (!Regex.IsMatch(code, _validRoomPattern)) {
+    if (!Regex.IsMatch(code, _validRoomPattern))
+    {
       OnServerEvent?.Invoke(_roomCodeInvalidText);
       return false;
     }

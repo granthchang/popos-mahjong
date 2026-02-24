@@ -4,22 +4,28 @@ using Photon.Realtime;
 using System;
 using System.Collections.Generic;
 
-public class PropertyManager : MonoBehaviourPunCallbacks {
+public class PropertyManager : MonoBehaviourPunCallbacks
+{
   public static PropertyManager Singleton;
   private Dictionary<Player, bool> _playersUpdatedDictionary;
   private Action _callbackAction;
 
-  private void Awake() {
-    if (Singleton != null && Singleton != this) {
+  private void Awake()
+  {
+    if (Singleton != null && Singleton != this)
+    {
       this.gameObject.SetActive(false);
     }
     Singleton = this;
   }
 
-  public void UpdatePropertiesWithCallback(Action initialAction, Action callbackAction) {
-    if (PhotonNetwork.IsMasterClient) {
+  public void UpdatePropertiesWithCallback(Action initialAction, Action callbackAction)
+  {
+    if (PhotonNetwork.IsMasterClient)
+    {
       _playersUpdatedDictionary = new Dictionary<Player, bool>();
-      foreach (Player p in PhotonNetwork.PlayerList) {
+      foreach (Player p in PhotonNetwork.PlayerList)
+      {
         _playersUpdatedDictionary.Add(p, false);
       }
       _callbackAction = callbackAction;
@@ -27,12 +33,17 @@ public class PropertyManager : MonoBehaviourPunCallbacks {
     }
   }
 
-  public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps) {
-    if (PhotonNetwork.IsMasterClient) {
-      if (_playersUpdatedDictionary != null && _callbackAction != null) {
+  public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
+  {
+    if (PhotonNetwork.IsMasterClient)
+    {
+      if (_playersUpdatedDictionary != null && _callbackAction != null)
+      {
         _playersUpdatedDictionary[targetPlayer] = true;
-        foreach (KeyValuePair<Player, bool> pair in _playersUpdatedDictionary) {
-          if (!pair.Value) {
+        foreach (KeyValuePair<Player, bool> pair in _playersUpdatedDictionary)
+        {
+          if (!pair.Value)
+          {
             return;
           }
         }
@@ -42,8 +53,10 @@ public class PropertyManager : MonoBehaviourPunCallbacks {
     }
   }
 
-  public void StopCallback() {
-    if (PhotonNetwork.IsMasterClient) {
+  public void StopCallback()
+  {
+    if (PhotonNetwork.IsMasterClient)
+    {
       _playersUpdatedDictionary = null;
       _callbackAction = null;
     }
