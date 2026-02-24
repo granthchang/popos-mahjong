@@ -25,6 +25,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
   public event Action<Card> OnDiscard;
   public event Action<Player> OnDiscardConsidered;
   public event Action<Card> OnDiscardUsed;
+  public event Action<Player> OnDisconnectConsidered;
 
   public Dictionary<Player, PlayerHand> HandDictionary { get; private set; }
 
@@ -237,6 +238,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks
   [PunRPC]
   private void RpcClientHandleDiscardRequested(Player requestedPlayer)
   {
+    // First, disable card selection for all players in case it was selectable from disconnect.
+    HandDictionary[PhotonNetwork.LocalPlayer].SetCardSelectionEnabled(false);
+
     OnDiscardRequested?.Invoke(requestedPlayer);
     // If discard is requested for local player, enable discard for the local hand
     if (requestedPlayer == PhotonNetwork.LocalPlayer)
@@ -263,7 +267,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
   private void HandleSelectedCardChanged(Card selectedCard)
   {
     OnSelectedCardChanged?.Invoke(selectedCard, _isSelectingDiscard);
-    HandDictionary[PhotonNetwork.LocalPlayer].CloseLockModal(); // TODO: remove this call so that we don't get extra Cancel Consider calls
+    //HandDictionary[PhotonNetwork.LocalPlayer].CloseLockModal(); // TODO: remove this call so that we don't get extra Cancel Consider calls
 
     List<LockableWrapper> lockableWrappers = new List<LockableWrapper>();
     // If using selecting for discard, we should check for winning hands and hidden kongs
@@ -283,6 +287,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks
       if (disconnect != null)
       {
         lockableWrappers.Add(disconnect);
+        ConsiderDisconnect(PhotonNetwork.LocalPlayer);
       }
     }
     // Present the lock modal if there is anything lockable
@@ -367,6 +372,17 @@ public class PlayerManager : MonoBehaviourPunCallbacks
       HandDictionary[turnPlayer].SetCardSelectionEnabled(false);
     }
     OnDiscardConsidered?.Invoke(sender);
+  }
+
+  public void ConsiderDisconnect(Player sender)
+  {
+    photonView.RPC("RpcClientHandleDisconnectConsidered", RpcTarget.All, sender);
+  }
+
+  [PunRPC]
+  private void RpcClientHandleDisconnectConsidered(Player sender)
+  {
+    OnDisconnectConsidered?.Invoke(sender);
   }
 
   public void LockCards(Player target, LockableWrapper wrapper)

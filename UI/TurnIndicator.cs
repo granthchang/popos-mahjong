@@ -23,6 +23,7 @@ public class TurnIndicator : ActivatablePanel
     PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
     PlayerManager.Singleton.OnDiscardRequested += HandleDiscardRequested;
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
+    PlayerManager.Singleton.OnDisconnectConsidered += HandleDiscardConsidered;
   }
 
   private void HandleTurnStarted(Player target, Card lastDiscard, bool canUseDiscard, bool canDraw)

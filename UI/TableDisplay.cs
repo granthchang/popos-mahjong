@@ -31,6 +31,7 @@ public class TableDisplay : ActivatablePanel
     PlayerManager.Singleton.OnTurnStarted += HandleTurnStarted;
     PlayerManager.Singleton.OnDiscardConsidered += HandleDiscardConsidered;
     PlayerManager.Singleton.OnDiscardUsed += HandleDiscardUsed;
+    PlayerManager.Singleton.OnDisconnectConsidered += HandleDisconnectConsidered;
   }
 
   public void Reset()
@@ -113,5 +114,10 @@ public class TableDisplay : ActivatablePanel
         RoundManager.Singleton.Discard(selectedCard);
       });
     }
+  }
+
+  private void HandleDisconnectConsidered(Player sender)
+  {
+    _deckDisplay.interactable = false;
   }
 }

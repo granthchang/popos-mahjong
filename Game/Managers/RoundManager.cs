@@ -27,6 +27,7 @@ public class RoundManager : MonoBehaviourPunCallbacks
   private Card _lastDiscard = null;
   private Player _lastDiscarder = null;
   private bool _hasLockedSetThisTurn;
+  private bool _isFirstTurn;
 
   public void StartRound(List<Player> players, int startIndex)
   {
@@ -34,6 +35,7 @@ public class RoundManager : MonoBehaviourPunCallbacks
     {
       _players = players;
       _turnIndex = startIndex;
+      _isFirstTurn = true;
       _winner = null;
       _loser = null;
       _deck = new Deck();
@@ -69,7 +71,7 @@ public class RoundManager : MonoBehaviourPunCallbacks
         PlayerManager.Singleton.SendCards(currPlayer, cards);
       }
       _hasLockedSetThisTurn = false;
-      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null, true, true);
+      PlayerManager.Singleton.StartTurn(_players[startIndex], null, null, true, _isFirstTurn);
     }
   }
 
@@ -90,7 +92,7 @@ public class RoundManager : MonoBehaviourPunCallbacks
     {
       _turnIndex = (_players.IndexOf(requester) + 1) % _players.Count;
       _hasLockedSetThisTurn = false;
-      PlayerManager.Singleton.StartTurn(_players[_turnIndex], null, null, false, false);
+      PlayerManager.Singleton.StartTurn(_players[_turnIndex], null, null, false, _isFirstTurn);
     }
   }
 
@@ -129,7 +131,8 @@ public class RoundManager : MonoBehaviourPunCallbacks
     _lastDiscarder = sender;
     _turnIndex = (_players.IndexOf(sender) + 1) % _players.Count;
     _hasLockedSetThisTurn = false;
-    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender, _deck.Size > 0, false);
+    _isFirstTurn = false; //No longer first turn after first discard
+    PlayerManager.Singleton.StartTurn(_players[_turnIndex], discard, sender, _deck.Size > 0, _isFirstTurn);
   }
 
   public void ConsiderDiscard()
@@ -168,7 +171,7 @@ public class RoundManager : MonoBehaviourPunCallbacks
     }
     else
     {
-      PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0, false);
+      PlayerManager.Singleton.StartTurn(_players[_turnIndex], _lastDiscard, _lastDiscarder, _deck.Size > 0, _isFirstTurn);
     }
   }
 

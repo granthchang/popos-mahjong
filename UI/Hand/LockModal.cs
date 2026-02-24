@@ -38,7 +38,7 @@ public class LockModal : ActivatablePanel
     if (_isPanelActivated)
     {
       ActivatePanel(false);
-      if (_isUsingDiscard)
+      //if (_isUsingDiscard) // Removed check for when you cancel considering disconnect. I don't think this check was necessary the first place
       {
         if (RoundManager.Singleton != null)
         {
