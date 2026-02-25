@@ -177,6 +177,7 @@ public class PlayerHand
     {
       if (targetCard == null || targetCard == Card.Unknown)
       {
+        // This should not occur. If not finding hidden, there needs to be a discard
         return new List<LockableWrapper>();
       }
       else
@@ -263,8 +264,10 @@ public class PlayerHand
           break;
         }
       }
+      // 8 flowers
+      bool has8flowers = findHidden && Flowers.Count >= 8;
       // Add abnormal hands to wrappers
-      if (is13Angels || isAllPairs)
+      if (is13Angels || isAllPairs || has8flowers)
       {
         Set handSet = new Set(SetType.Other, fullHand);
         wrappersToReturn.Add(LockableWrapper.WrapSet(handSet, discard));

@@ -107,6 +107,7 @@ public static class Constants
   public static int ForceDrawCard = -1;
   public static int ForceAllStickDeck = 0;
   public static int ForceDealAngels = 0;
+  public static int ForceDrawFlowerRate = -1;
 
   // Specific hands
   public static List<Card> Angels = new List<Card>() {

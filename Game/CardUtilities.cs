@@ -266,6 +266,20 @@ namespace CardUtilities
           Size--;
           OnSizeChanged?.Invoke(Size);
         }
+        // ForceDrawCard draws the specified card ID
+        if (Constants.ForceDrawCard >= 0)
+        {
+          first = new Card(Constants.ForceDrawCard);
+          Debug.Log($"Forced draw: {first.ToString()}");
+        }
+        else if (Constants.ForceDrawFlowerRate >= 0)
+        {
+          if (UnityEngine.Random.Range(0, 100) < Constants.ForceDrawFlowerRate)
+          {
+            first = new Card(Suit.Flower, 1, 1);
+            Debug.Log($"Forced draw flower: {first.ToString()}");
+          }
+        }
         return first;
       }
     }
