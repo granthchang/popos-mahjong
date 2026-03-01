@@ -168,6 +168,7 @@ public class HandDisplay : ActivatablePanel
 
   public void OpenLockModal(List<LockableWrapper> wrappers)
   {
+    _flowerDisplay.ActivatePanel(false);
     _lockModal.OpenLockModal(wrappers);
   }
 
